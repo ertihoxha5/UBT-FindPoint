@@ -1,14 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import { View } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { Stack, SplashScreen } from 'expo-router';  
 import { StatusBar } from 'expo-status-bar';
-import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-// Prevent the splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
@@ -17,41 +15,38 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const [appIsReady, setAppIsReady] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
-  // Këtu mund të ngarkosh fonta, të dhëna, ose çdo gjë tjetër që të duhet
   useEffect(() => {
     async function prepare() {
       try {
-        // Nëse ke fonte custom, ngarkoji këtu:
-        // await Font.loadAsync({ ... });
+        // Këtu mund të ngarkosh fonte, auth, ose çfarëdo gjë tjetër
+        // await Font.loadAsync(...);
 
-        // Mund të shtosh pak delay për efekt më të bukur (opsional)
-        await new Promise((resolve) => setTimeout(resolve, 1200));
+        // Delay për të parë splash-in më mirë (mund ta ulësh më vonë)
+        await new Promise(resolve => setTimeout(resolve, 1800));
       } catch (e) {
-        console.warn('Error during app preparation:', e);
+        console.warn(e);
       } finally {
-        setAppIsReady(true);
+        setIsReady(true);
       }
     }
 
     prepare();
   }, []);
 
-  // Fshihet splash screen-i kur app-i është gati
-  const onLayoutRootView = useCallback(async () => {
-    if (appIsReady) {
+  const onLayout = useCallback(async () => {
+    if (isReady) {
       await SplashScreen.hideAsync();
     }
-  }, [appIsReady]);
+  }, [isReady]);
 
-  // Derisa app-i të jetë gati, mos shfaq asgjë (splash screen-i mbetet i dukshëm)
-  if (!appIsReady) {
-    return null;
+  if (!isReady) {
+    return null;   
   }
 
   return (
-    <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+    <View style={{ flex: 1 }} onLayout={onLayout}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
