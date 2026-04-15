@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { View } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack, SplashScreen } from 'expo-router';  
+import { Stack, SplashScreen, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
@@ -15,7 +15,9 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const segments = useSegments();
   const [isReady, setIsReady] = useState(false);
+  const isLoginScreen = segments[0] === 'login';
 
   useEffect(() => {
     async function prepare() {
@@ -50,9 +52,10 @@ export default function RootLayout() {
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="login" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         </Stack>
-        <StatusBar style="auto" />
+        {!isLoginScreen ? <StatusBar style="auto" /> : null}
       </ThemeProvider>
     </View>
   );
