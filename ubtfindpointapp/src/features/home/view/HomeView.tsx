@@ -1,6 +1,7 @@
 // src/features/home/view/HomeView.tsx
 import React from 'react';
 import { View, FlatList, RefreshControl, ActivityIndicator, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
@@ -15,6 +16,8 @@ type HomeViewProps = {
 };
 
 export default function HomeView({ points, loading, error, onRefresh }: HomeViewProps) {
+  const router = useRouter();
+
   if (loading && points.length === 0) {
     return (
       <ThemedView style={styles.loadingContainer}>
@@ -70,6 +73,16 @@ export default function HomeView({ points, loading, error, onRefresh }: HomeView
 
               <TouchableOpacity style={styles.secondaryButton} activeOpacity={0.85}>
                 <ThemedText style={styles.secondaryButtonText}>Shfleto Raportimet</ThemedText>
+              </TouchableOpacity>
+            </View>
+          
+            <View style={styles.testLoginWrap}>
+              <TouchableOpacity
+                style={styles.testLoginButton}
+                activeOpacity={0.9}
+                onPress={() => router.push('/login')}
+              >
+                <ThemedText style={styles.testLoginText}>Test Login Screen</ThemedText>
               </TouchableOpacity>
             </View>
 
@@ -224,6 +237,21 @@ const styles = StyleSheet.create({
     color: '#1E40AF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  testLoginWrap: {
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  testLoginButton: {
+    backgroundColor: '#0F172A',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  testLoginText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 15,
   },
 
   infoCard: {
