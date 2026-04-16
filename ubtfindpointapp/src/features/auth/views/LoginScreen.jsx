@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import {ActivityIndicator,Alert,KeyboardAvoidingView,Dimensions,Image,Platform,StyleSheet,Text,TextInput,
+import {ActivityIndicator,KeyboardAvoidingView,Dimensions,Image,Platform,StyleSheet,Text,TextInput,
 	TouchableOpacity,
 	ScrollView,
 	View,
@@ -7,20 +7,20 @@ import {ActivityIndicator,Alert,KeyboardAvoidingView,Dimensions,Image,Platform,S
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useAuthViewModel } from '../viewmodel/AuthViewModel';
 
 const LOGO_SIZE = Math.min(Dimensions.get('window').width * 0.52, 220);
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const STRONG_PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
-const STRONG_PASSWORD_MESSAGE =
-	'Password must be at least 8 characters and include uppercase, lowercase, number, and special character.';
 
 export default function LoginScreen() {
 	const router = useRouter();
+	const { login } = useAuthViewModel();
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
 	const [loading, setLoading] = useState(false);
 	const [emailError, setEmailError] = useState('');
 	const [passwordError, setPasswordError] = useState('');
+	const [authError, setAuthError] = useState('');
 
 	const handleLogin = async () => {
 		const trimmedEmail = email.trim();
@@ -29,6 +29,7 @@ export default function LoginScreen() {
 
 		setEmailError('');
 		setPasswordError('');
+		setAuthError('');
 
 		if (!trimmedEmail) {
 			setEmailError('Email is required.');
@@ -41,9 +42,6 @@ export default function LoginScreen() {
 		if (!trimmedPassword) {
 			setPasswordError('Password is required.');
 			hasError = true;
-		} else if (!STRONG_PASSWORD_REGEX.test(trimmedPassword)) {
-			setPasswordError(STRONG_PASSWORD_MESSAGE);
-			hasError = true;
 		}
 
 		if (hasError) {
@@ -53,11 +51,19 @@ export default function LoginScreen() {
 		setLoading(true);
 
 		try {
-			// Simulate a simple login request.
-			await new Promise((resolve) => setTimeout(resolve, 900));
-			Alert.alert('Success', `Welcome back, ${trimmedEmail}!`);
+			await login(trimmedEmail, trimmedPassword);
+			router.replace('/(tabs)');
 		} catch (error) {
-			Alert.alert('Login failed', 'Please try again.');
+			const message = (error?.response?.data?.error || error?.message || 'Please try again.').trim();
+			const loweredMessage = message.toLowerCase();
+
+			if (loweredMessage.includes('user not found')) {
+				setEmailError('User does not exist.');
+			} else if (loweredMessage.includes('invalid password')) {
+				setPasswordError('Password is incorrect.');
+			} else {
+				setAuthError(message);
+			}
 		} finally {
 			setLoading(false);
 		}
@@ -92,6 +98,9 @@ export default function LoginScreen() {
 								if (emailError) {
 									setEmailError('');
 								}
+								if (authError) {
+									setAuthError('');
+								}
 							}}
 							placeholder="Email"
 							placeholderTextColor="#94a3b8"
@@ -109,6 +118,9 @@ export default function LoginScreen() {
 								if (passwordError) {
 									setPasswordError('');
 								}
+								if (authError) {
+									setAuthError('');
+								}
 							}}
 							placeholder="Password"
 							placeholderTextColor="#94a3b8"
@@ -117,6 +129,7 @@ export default function LoginScreen() {
 							style={[styles.input, passwordError ? styles.inputError : null]}
 						/>
 						{passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+						{authError ? <Text style={styles.errorText}>{authError}</Text> : null}
 
 						<View style={styles.linksRow}>
 							<TouchableOpacity onPress={() => router.push('/forgot-password')} activeOpacity={0.8}>
