@@ -17,7 +17,7 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const segments = useSegments();
   const [isReady, setIsReady] = useState(false);
-  const isLoginScreen = segments[0] === 'login';
+  const isAuthScreen = segments[0] === 'login' || segments[0] === 'register';
 
   useEffect(() => {
     async function prepare() {
@@ -53,9 +53,10 @@ export default function RootLayout() {
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="register" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         </Stack>
-        {!isLoginScreen ? <StatusBar style="auto" /> : null}
+        {!isAuthScreen ? <StatusBar style="auto" /> : null}
       </ThemeProvider>
     </View>
   );

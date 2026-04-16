@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import {ActivityIndicator,Alert,KeyboardAvoidingView,Dimensions,Image,Platform,StyleSheet,Text,TextInput,
-	TouchableOpacity,
+import {ActivityIndicator,Alert,KeyboardAvoidingView,Dimensions,Image,Platform,StyleSheet,Text,TextInput,TouchableOpacity,
 	ScrollView,
 	View,
 } from 'react-native';
@@ -8,27 +7,40 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
-const LOGO_SIZE = Math.min(Dimensions.get('window').width * 0.52, 220);
+const LOGO_SIZE = Math.min(Dimensions.get('window').width * 0.45, 190);
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const STRONG_PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 const STRONG_PASSWORD_MESSAGE =
 	'Password must be at least 8 characters and include uppercase, lowercase, number, and special character.';
 
-export default function LoginScreen() {
+export default function RegisterScreen() {
 	const router = useRouter();
+	const [fullName, setFullName] = useState('');
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
+	const [confirmPassword, setConfirmPassword] = useState('');
 	const [loading, setLoading] = useState(false);
+	const [fullNameError, setFullNameError] = useState('');
 	const [emailError, setEmailError] = useState('');
 	const [passwordError, setPasswordError] = useState('');
+	const [confirmPasswordError, setConfirmPasswordError] = useState('');
 
-	const handleLogin = async () => {
+	const handleRegister = async () => {
+		const trimmedName = fullName.trim();
 		const trimmedEmail = email.trim();
 		const trimmedPassword = password.trim();
+		const trimmedConfirmPassword = confirmPassword.trim();
 		let hasError = false;
 
+		setFullNameError('');
 		setEmailError('');
 		setPasswordError('');
+		setConfirmPasswordError('');
+
+		if (!trimmedName) {
+			setFullNameError('Full name is required.');
+			hasError = true;
+		}
 
 		if (!trimmedEmail) {
 			setEmailError('Email is required.');
@@ -46,6 +58,14 @@ export default function LoginScreen() {
 			hasError = true;
 		}
 
+		if (!trimmedConfirmPassword) {
+			setConfirmPasswordError('Confirm password is required.');
+			hasError = true;
+		} else if (trimmedPassword !== trimmedConfirmPassword) {
+			setConfirmPasswordError('Password and confirm password must match.');
+			hasError = true;
+		}
+
 		if (hasError) {
 			return;
 		}
@@ -53,11 +73,12 @@ export default function LoginScreen() {
 		setLoading(true);
 
 		try {
-			// Simulate a simple login request.
-			await new Promise((resolve) => setTimeout(resolve, 900));
-			Alert.alert('Success', `Welcome back, ${trimmedEmail}!`);
+			// Simulate a simple register request.
+			await new Promise((resolve) => setTimeout(resolve, 1000));
+			Alert.alert('Account created', `Welcome, ${trimmedName}!`);
+			router.replace('/login');
 		} catch (error) {
-			Alert.alert('Login failed', 'Please try again.');
+			Alert.alert('Registration failed', 'Please try again.');
 		} finally {
 			setLoading(false);
 		}
@@ -82,8 +103,24 @@ export default function LoginScreen() {
 								resizeMode="contain"
 								style={styles.logo}
 							/>
-							<Text style={styles.title}>Login</Text>
+							<Text style={styles.title}>Create account</Text>
 						</View>
+
+						<TextInput
+							value={fullName}
+							onChangeText={(value) => {
+								setFullName(value);
+								if (fullNameError) {
+									setFullNameError('');
+								}
+							}}
+							placeholder="Full name"
+							placeholderTextColor="#94a3b8"
+							autoCapitalize="words"
+							autoCorrect={false}
+							style={[styles.input, fullNameError ? styles.inputError : null]}
+						/>
+						{fullNameError ? <Text style={styles.errorText}>{fullNameError}</Text> : null}
 
 						<TextInput
 							value={email}
@@ -118,30 +155,39 @@ export default function LoginScreen() {
 						/>
 						{passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
 
-						<View style={styles.linksRow}>
-							<TouchableOpacity onPress={() => router.push('/forgot-password')} activeOpacity={0.8}>
-								<Text style={styles.linkText}>Forgot password?</Text>
-							</TouchableOpacity>
-
-						</View>
+						<TextInput
+							value={confirmPassword}
+							onChangeText={(value) => {
+								setConfirmPassword(value);
+								if (confirmPasswordError) {
+									setConfirmPasswordError('');
+								}
+							}}
+							placeholder="Confirm password"
+							placeholderTextColor="#94a3b8"
+							secureTextEntry
+							autoCapitalize="none"
+							style={[styles.input, confirmPasswordError ? styles.inputError : null]}
+						/>
+						{confirmPasswordError ? <Text style={styles.errorText}>{confirmPasswordError}</Text> : null}
 
 						<TouchableOpacity
 							style={[styles.button, loading && styles.buttonDisabled]}
-							onPress={handleLogin}
+							onPress={handleRegister}
 							disabled={loading}
 							activeOpacity={0.85}
 						>
 							{loading ? (
 								<ActivityIndicator color="#ffffff" />
 							) : (
-								<Text style={styles.buttonText}>Login</Text>
+								<Text style={styles.buttonText}>Register</Text>
 							)}
 						</TouchableOpacity>
 
-						<View style={styles.registerRow}>
-							<Text style={styles.registerText}>Don't have an account? </Text>
-							<TouchableOpacity onPress={() => router.push('/register')} activeOpacity={0.8}>
-								<Text style={styles.registerLink}>Register</Text>
+						<View style={styles.loginRow}>
+							<Text style={styles.loginText}>Already have an account? </Text>
+							<TouchableOpacity onPress={() => router.replace('/login')} activeOpacity={0.8}>
+								<Text style={styles.loginLink}>Login</Text>
 							</TouchableOpacity>
 						</View>
 					</View>
@@ -166,7 +212,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 		backgroundColor: '#eef2ff',
 		paddingHorizontal: 24,
-		paddingTop: 32,
+		paddingTop: 28,
 		paddingBottom: 32,
 		justifyContent: 'center',
 	},
@@ -178,19 +224,13 @@ const styles = StyleSheet.create({
 		width: LOGO_SIZE,
 		height: LOGO_SIZE,
 		alignSelf: 'center',
-		marginBottom: 16,
+		marginBottom: 14,
 	},
 	title: {
-		fontSize: 32,
+		fontSize: 30,
 		fontWeight: '700',
 		color: '#0e2f77',
 		marginBottom: 4,
-		textAlign: 'center',
-	},
-	subtitle: {
-		fontSize: 15,
-		color: '#475569',
-		marginBottom: 14,
 		textAlign: 'center',
 	},
 	input: {
@@ -213,30 +253,13 @@ const styles = StyleSheet.create({
 		marginTop: -6,
 		marginBottom: 10,
 	},
-	hintText: {
-		color: '#64748b',
-		fontSize: 13,
-		marginTop: 2,
-		marginBottom: 10,
-	},
-	linksRow: {
-		flexDirection: 'row',
-		justifyContent: 'space-between',
-		alignItems: 'center',
-		marginBottom: 6,
-	},
-	linkText: {
-		color: '#2563eb',
-		fontSize: 14,
-		fontWeight: '600',
-	},
 	button: {
 		height: 52,
 		borderRadius: 14,
 		alignItems: 'center',
 		justifyContent: 'center',
 		backgroundColor: '#2563eb',
-		marginTop: 10,
+		marginTop: 8,
 		shadowColor: '#1d4ed8',
 		shadowOffset: { width: 0, height: 8 },
 		shadowOpacity: 0.25,
@@ -251,17 +274,17 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		fontWeight: '600',
 	},
-	registerRow: {
+	loginRow: {
 		flexDirection: 'row',
 		justifyContent: 'center',
 		alignItems: 'center',
 		marginTop: 16,
 	},
-	registerText: {
+	loginText: {
 		color: '#475569',
 		fontSize: 14,
 	},
-	registerLink: {
+	loginLink: {
 		color: '#2563eb',
 		fontSize: 14,
 		fontWeight: '700',
