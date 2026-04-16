@@ -6,6 +6,7 @@ import {ActivityIndicator,Alert,KeyboardAvoidingView,Dimensions,Image,Platform,S
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useAuthViewModel } from '../viewmodel/AuthViewModel';
 
 const LOGO_SIZE = Math.min(Dimensions.get('window').width * 0.45, 190);
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -15,6 +16,7 @@ const STRONG_PASSWORD_MESSAGE =
 
 export default function RegisterScreen() {
 	const router = useRouter();
+	const { register } = useAuthViewModel();
 	const [fullName, setFullName] = useState('');
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
@@ -73,12 +75,12 @@ export default function RegisterScreen() {
 		setLoading(true);
 
 		try {
-			// Simulate a simple register request.
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			await register(trimmedName, trimmedEmail, trimmedPassword);
 			Alert.alert('Account created', `Welcome, ${trimmedName}!`);
 			router.replace('/login');
 		} catch (error) {
-			Alert.alert('Registration failed', 'Please try again.');
+			const message = error?.response?.data?.error || error?.message || 'Please try again.';
+			Alert.alert('Registration failed', message);
 		} finally {
 			setLoading(false);
 		}
