@@ -22,13 +22,46 @@ const getBaseUrl = () => {
   return "http://localhost:3000/api/auth";
 };
 
+const baseURL = getBaseUrl();
 const api = axios.create({
-  baseURL: getBaseUrl(),
+  baseURL,
 });
 
+const refreshClient = axios.create({
+  baseURL,
+});
+
+const getStoredAccessToken = async () => {
+  const accessToken = await AsyncStorage.getItem("accessToken");
+
+  if (accessToken) {
+    return accessToken;
+  }
+
+  return AsyncStorage.getItem("token");
+};
+
+const storeTokens = async ({ accessToken, refreshToken }) => {
+  await AsyncStorage.setItem("accessToken", accessToken);
+  await AsyncStorage.setItem("token", accessToken);
+
+  if (refreshToken) {
+    await AsyncStorage.setItem("refreshToken", refreshToken);
+  }
+};
+
+const isAuthEndpoint = (config) => {
+  const requestUrl = `${config?.baseURL ?? ""}${config?.url ?? ""}`;
+
+  return /\/login$|\/register$|\/refresh$|\/forgot-password$|\/reset-password$/i.test(requestUrl);
+};
+
 api.interceptors.request.use(async (config) => {
-  const token = await AsyncStorage.getItem("token");
-  console.log("STORED TOKEN:", token);
+  if (isAuthEndpoint(config)) {
+    return config;
+  }
+
+  const token = await getStoredAccessToken();
 
   if (token) {
     config.headers = config.headers ?? {};
@@ -37,5 +70,39 @@ api.interceptors.request.use(async (config) => {
 
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    const status = error.response?.status;
+
+    if (!originalRequest || status !== 401 || originalRequest._retry || isAuthEndpoint(originalRequest)) {
+      return Promise.reject(error);
+    }
+
+    originalRequest._retry = true;
+
+    const refreshToken = await AsyncStorage.getItem("refreshToken");
+
+    if (!refreshToken) {
+      return Promise.reject(error);
+    }
+
+    try {
+      const { data } = await refreshClient.post("/refresh", { refreshToken });
+
+      await storeTokens(data);
+
+      originalRequest.headers = originalRequest.headers ?? {};
+      originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+
+      return api(originalRequest);
+    } catch (refreshError) {
+      await AsyncStorage.multiRemove(["accessToken", "token", "refreshToken"]);
+      return Promise.reject(refreshError);
+    }
+  }
+);
 
 export default api;
