@@ -16,10 +16,10 @@ const getBaseUrl = () => {
 
   if (hostUri) {
     const host = hostUri.split(":")[0];
-    return `http://${host}:3000/api/auth`;
+    return `http://${host}:3000/api`;
   }
 
-  return "http://localhost:3000/api/auth";
+  return "http://localhost:3000/api";
 };
 
 const api = axios.create({
