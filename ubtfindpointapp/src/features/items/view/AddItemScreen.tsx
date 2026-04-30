@@ -15,6 +15,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Calendar } from 'react-native-calendars';
 import * as ImagePicker from 'expo-image-picker';
 import { StatusBar } from 'expo-status-bar';
 import { useCategoryViewModel } from '../../category/viewmodel/useCategoryViewModel';
@@ -45,7 +46,32 @@ export default function AddItemScreen() {
   const [error, setError] = useState<string | null>(null);
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
   const [locationModalVisible, setLocationModalVisible] = useState(false);
+  const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
+
+  const getLocalDateKey = (value: Date | null) => {
+    if (!value) {
+      return '';
+    }
+
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, '0');
+    const day = String(value.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const formatDateLabel = (value: Date | null) => {
+    if (!value) {
+      return 'Tap to open calendar';
+    }
+
+    return value.toLocaleDateString(undefined, {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
 
   const selectedCategory = useMemo(
     () => categories.find((category) => category.category_id === categoryId) ?? null,
@@ -124,6 +150,12 @@ export default function AddItemScreen() {
       Alert.alert('Missing details', 'Please complete the required fields.');
       return;
     }
+    // Prevent submitting a future date
+    const todayKey = getLocalDateKey(new Date());
+    if (date && getLocalDateKey(date) > todayKey) {
+      Alert.alert('Invalid date', 'Please select today or a past date.');
+      return;
+    }
 
     try {
       const formData = new FormData();
@@ -134,7 +166,7 @@ export default function AddItemScreen() {
       formData.append('location_id', locationId.toString());
       let foundDateValue = '';
       if (date instanceof Date) {
-        foundDateValue = date.toISOString().split('T')[0];
+        foundDateValue = getLocalDateKey(date);
       }
       if (foundDateValue) formData.append('date', foundDateValue);
       formData.append('is_anonymous', isAnonymous ? '1' : '0');
@@ -256,20 +288,19 @@ export default function AddItemScreen() {
         </TouchableOpacity>
 
         <Text style={styles.label}>Date</Text>
-        <TextInput
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor="#94A3B8"
-          value={date ? date.toISOString().split('T')[0] : ''}
-          onChangeText={(text) => {
-            const parsed = new Date(text);
-            if (!isNaN(parsed.getTime())) {
-              setDate(parsed);
-            } else {
-              setDate(null);
-            }
-          }}
-          style={styles.input}
-        />
+        <TouchableOpacity
+          style={[styles.selectButton, styles.dateButton]}
+          onPress={() => setDatePickerVisible(true)}
+          activeOpacity={0.85}
+        >
+          <View style={styles.dateRow}>
+            <View>
+              <Text style={styles.dateLabel}>Select Date</Text>
+              <Text style={date ? styles.dateValue : styles.placeholderText}>{formatDateLabel(date)}</Text>
+            </View>
+            <Text style={styles.dateChevron}>⌄</Text>
+          </View>
+        </TouchableOpacity>
 
         <Text style={styles.label}>Media</Text>
         <TouchableOpacity style={styles.pickMediaButton} onPress={pickMedia} activeOpacity={0.85}>
@@ -312,6 +343,61 @@ export default function AddItemScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal visible={datePickerVisible} transparent animationType="fade" onRequestClose={() => setDatePickerVisible(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, styles.calendarCard]}>
+            <View style={styles.calendarHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Select Date</Text>
+                <Text style={styles.modalSubtitle}>Choose the day from the calendar below</Text>
+              </View>
+              <TouchableOpacity style={styles.modalHeaderAction} onPress={() => setDatePickerVisible(false)}>
+                <Text style={styles.modalHeaderActionText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+            <Calendar
+              current={getLocalDateKey(date) || undefined}
+              maxDate={getLocalDateKey(new Date())}
+              onDayPress={(day) => {
+                const todayKey = getLocalDateKey(new Date());
+                if (day.dateString > todayKey) {
+                  Alert.alert('Invalid date', 'Please select today or a past date.');
+                  return;
+                }
+                const [year, month, dayOfMonth] = day.dateString.split('-').map(Number);
+                setDate(new Date(year, month - 1, dayOfMonth));
+              }}
+              markedDates={date ? { [getLocalDateKey(date)]: { selected: true, selectedColor: '#2563EB' } } : {}}
+              theme={{
+                backgroundColor: '#FFFFFF',
+                calendarBackground: '#FFFFFF',
+                textSectionTitleColor: '#64748B',
+                selectedDayBackgroundColor: '#2563EB',
+                selectedDayTextColor: '#FFFFFF',
+                todayTextColor: '#0F766E',
+                dayTextColor: '#0F172A',
+                monthTextColor: '#0F172A',
+                arrowColor: '#2563EB',
+                textDayFontWeight: '600',
+                textMonthFontWeight: '700',
+                textDayHeaderFontWeight: '700',
+              }}
+            />
+            <View style={styles.calendarActions}>
+              <TouchableOpacity style={styles.calendarActionSecondary} onPress={() => setDate(new Date())} activeOpacity={0.85}>
+                <Text style={styles.calendarActionSecondaryText}>Today</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.calendarActionSecondary} onPress={() => setDate(null)} activeOpacity={0.85}>
+                <Text style={styles.calendarActionSecondaryText}>Clear</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalCloseButton} onPress={() => setDatePickerVisible(false)}>
+                <Text style={styles.modalCloseButtonText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Modal visible={categoryModalVisible} transparent animationType="fade" onRequestClose={() => setCategoryModalVisible(false)}>
         <View style={styles.modalBackdrop}>
@@ -491,6 +577,31 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     fontSize: 15,
   },
+  dateButton: {
+    paddingVertical: 14,
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  dateLabel: {
+    color: '#334155',
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  dateValue: {
+    color: '#0F172A',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  dateChevron: {
+    color: '#64748B',
+    fontSize: 18,
+    fontWeight: '700',
+  },
   placeholderText: {
     color: '#94A3B8',
     fontSize: 15,
@@ -561,12 +672,55 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 18,
     maxHeight: '70%',
+    width: '100%',
+  },
+  calendarCard: {
+    maxHeight: '85%',
+  },
+  calendarHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 12,
+  },
+  modalSubtitle: {
+    color: '#64748B',
+    fontSize: 13,
+  },
+  modalHeaderAction: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  modalHeaderActionText: {
+    color: '#0F172A',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  calendarActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 16,
+  },
+  calendarActionSecondary: {
+    flex: 1,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  calendarActionSecondaryText: {
+    color: '#0F172A',
+    fontSize: 14,
+    fontWeight: '700',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: '#0F172A',
-    marginBottom: 12,
+    marginBottom: 4,
   },
   modalOption: {
     paddingVertical: 14,
