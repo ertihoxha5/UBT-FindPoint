@@ -52,7 +52,7 @@ export default function LoginScreen() {
 
 		try {
 			await login(trimmedEmail, trimmedPassword);
-			router.replace('/(tabs)');
+			router.replace('/lostItems');
 		} catch (error) {
 			const message = (error?.response?.data?.error || error?.message || 'Please try again.').trim();
 			const loweredMessage = message.toLowerCase();

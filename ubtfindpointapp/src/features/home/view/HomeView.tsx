@@ -80,9 +80,9 @@ export default function HomeView({ points, loading, error, onRefresh }: HomeView
               <TouchableOpacity
                 style={styles.testLoginButton}
                 activeOpacity={0.9}
-                onPress={() => router.push('/login')}
+                onPress={() => router.push('/home/details')}
               >
-                <ThemedText style={styles.testLoginText}>Test Login Screen</ThemedText>
+                <ThemedText style={styles.testLoginText}>Open Details Screen</ThemedText>
               </TouchableOpacity>
             </View>
 
