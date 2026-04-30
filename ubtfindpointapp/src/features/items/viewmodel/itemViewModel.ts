@@ -1,25 +1,23 @@
 import { useState } from 'react';
 import api from '../../../services/api';
+import type { Item } from '../model/ItemModel';
 
 type ItemMediaInput = {
   url: string;
+};
+
+type NewItemPayload = Omit<Item, 'item_id' | 'created_at' | 'updated_at' | 'media'> & {
+  // media for creation is a simpler input form
+  media?: ItemMediaInput[];
+  // allow Date or string when creating
+  date?: string | Date;
 };
 
 export const useItemViewModel = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const addItem = async (item: FormData | {
-    title: string;
-    description?: string;
-    type: 'lost' | 'found';
-    category_id: number;
-    location_id: number;
-    found_date?: string;
-    reward?: string;
-    is_anonymous: boolean;
-    media?: ItemMediaInput[];
-  }) => {
+  const addItem = async (item: FormData | NewItemPayload) => {
     try {
       setLoading(true);
       setError(null);
@@ -34,11 +32,13 @@ export const useItemViewModel = () => {
         });
         return response.data;
       } else {
-        // For JSON, add status as before
-        const response = await api.post('/items', {
-          ...item,
-          status: 'open',
-        });
+        // For JSON, ensure Date values are stringified (backend expects string dates)
+        const payload: any = { ...item, status: 'open' };
+        if (payload.date instanceof Date) {
+          payload.date = payload.date.toISOString().split('T')[0];
+        }
+
+        const response = await api.post('/items', payload);
         return response.data;
       }
     } catch (err: any) {

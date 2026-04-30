@@ -30,6 +30,8 @@ CREATE TABLE locations (
 CREATE TABLE items (
     item_id INT AUTO_INCREMENT PRIMARY KEY,
 
+    user_id INT NULL,
+
     title VARCHAR(255) NOT NULL,
     description TEXT,
 
@@ -39,7 +41,7 @@ CREATE TABLE items (
     category_id INT,
     location_id INT,
 
-    found_date DATE,
+    date Date,
     reward VARCHAR(100),
 
     is_anonymous BOOLEAN DEFAULT FALSE,
@@ -48,7 +50,8 @@ CREATE TABLE items (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     FOREIGN KEY (category_id) REFERENCES categories(category_id),
-    FOREIGN KEY (location_id) REFERENCES locations(location_id)
+    FOREIGN KEY (location_id) REFERENCES locations(location_id),
+    FOREIGN KEY (user_id) REFERENCES users(userId)
 );
 
 CREATE TABLE media (
@@ -64,3 +67,6 @@ CREATE TABLE media (
         REFERENCES items(item_id)
         ON DELETE CASCADE
 );
+
+ALTER TABLE items 
+CHANGE found_data date Date;

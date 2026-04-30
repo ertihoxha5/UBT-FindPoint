@@ -35,7 +35,7 @@ export default function AddItemScreen() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState<'lost' | 'found'>('lost');
-  const [foundDate, setFoundDate] = useState('');
+  const [date, setDate] = useState<Date | null>(null);
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [locationId, setLocationId] = useState<number | null>(null);
@@ -132,7 +132,11 @@ export default function AddItemScreen() {
       formData.append('type', type);
       formData.append('category_id', categoryId.toString());
       formData.append('location_id', locationId.toString());
-      if (foundDate.trim()) formData.append('found_date', foundDate.trim());
+      let foundDateValue = '';
+      if (date instanceof Date) {
+        foundDateValue = date.toISOString().split('T')[0];
+      }
+      if (foundDateValue) formData.append('date', foundDateValue);
       formData.append('is_anonymous', isAnonymous ? '1' : '0');
 
       // Append media files
@@ -150,7 +154,7 @@ export default function AddItemScreen() {
       setTitle('');
       setDescription('');
       setType('lost');
-      setFoundDate('');
+      setDate(null);
       setIsAnonymous(false);
       setMediaFiles([]);
 
@@ -251,12 +255,19 @@ export default function AddItemScreen() {
           </Text>
         </TouchableOpacity>
 
-        <Text style={styles.label}>Found Date</Text>
+        <Text style={styles.label}>Date</Text>
         <TextInput
           placeholder="YYYY-MM-DD"
           placeholderTextColor="#94A3B8"
-          value={foundDate}
-          onChangeText={setFoundDate}
+          value={date ? date.toISOString().split('T')[0] : ''}
+          onChangeText={(text) => {
+            const parsed = new Date(text);
+            if (!isNaN(parsed.getTime())) {
+              setDate(parsed);
+            } else {
+              setDate(null);
+            }
+          }}
           style={styles.input}
         />
 

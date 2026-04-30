@@ -11,7 +11,7 @@ export type Item = {
   category_id: number;
   location_id: number;
 
-  found_date?: string;
+  date?: Date;
   reward?: string;
 
   is_anonymous: boolean;
