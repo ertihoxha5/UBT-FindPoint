@@ -1,6 +1,6 @@
 import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
+import { getStoredToken } from "./session";
 
 const getBaseUrl = () => {
   const envUrl = process.env.EXPO_PUBLIC_API_URL;
@@ -27,8 +27,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use(async (config) => {
-  const token = await AsyncStorage.getItem("token");
-  console.log("STORED TOKEN:", token);
+  const token = await getStoredToken();
 
   if (token) {
     config.headers = config.headers ?? {};

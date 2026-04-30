@@ -18,6 +18,7 @@ import {
 import { Calendar } from 'react-native-calendars';
 import * as ImagePicker from 'expo-image-picker';
 import { StatusBar } from 'expo-status-bar';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCategoryViewModel } from '../../category/viewmodel/useCategoryViewModel';
 import { useLocationViewModel } from '../../location/viewmodel/useLocationViewModel';
 import type { Category } from '../../category/model/CategoryModel';
@@ -31,11 +32,13 @@ interface MediaFile {
 }
 
 export default function AddItemScreen() {
+  const router = useRouter();
+  const params = useLocalSearchParams<{ type?: string }>();
   const { addItem, loading } = useItemViewModel();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [type, setType] = useState<'lost' | 'found'>('lost');
+  const [type, setType] = useState<'lost' | 'found'>(params.type === 'found' ? 'found' : 'lost');
   const [date, setDate] = useState<Date | null>(null);
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [categoryId, setCategoryId] = useState<number | null>(null);
@@ -62,7 +65,7 @@ export default function AddItemScreen() {
 
   const formatDateLabel = (value: Date | null) => {
     if (!value) {
-      return 'Tap to open calendar';
+      return 'Choose a date';
     }
 
     return value.toLocaleDateString(undefined, {
@@ -97,7 +100,7 @@ export default function AddItemScreen() {
       setLocations(locationData);
       setCategoryId((current) => current ?? categoryData[0]?.category_id ?? null);
       setLocationId((current) => current ?? locationData[0]?.location_id ?? null);
-    } catch (lookupError) {
+    } catch {
       setError('Failed to load categories and locations.');
     } finally {
       setLoadingData(false);
@@ -112,7 +115,7 @@ export default function AddItemScreen() {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission denied', 'We need camera roll permissions to select media.');
+        Alert.alert('Permission denied', 'We need photo access to select media.');
         return;
       }
 
@@ -136,7 +139,7 @@ export default function AddItemScreen() {
           },
         ]);
       }
-    } catch (err) {
+    } catch {
       Alert.alert('Error', 'Failed to pick media.');
     }
   };
@@ -150,7 +153,7 @@ export default function AddItemScreen() {
       Alert.alert('Missing details', 'Please complete the required fields.');
       return;
     }
-    // Prevent submitting a future date
+
     const todayKey = getLocalDateKey(new Date());
     if (date && getLocalDateKey(date) > todayKey) {
       Alert.alert('Invalid date', 'Please select today or a past date.');
@@ -164,14 +167,12 @@ export default function AddItemScreen() {
       formData.append('type', type);
       formData.append('category_id', categoryId.toString());
       formData.append('location_id', locationId.toString());
-      let foundDateValue = '';
-      if (date instanceof Date) {
-        foundDateValue = getLocalDateKey(date);
+      const chosenDate = date instanceof Date ? getLocalDateKey(date) : '';
+      if (chosenDate) {
+        formData.append('date', chosenDate);
       }
-      if (foundDateValue) formData.append('date', foundDateValue);
       formData.append('is_anonymous', isAnonymous ? '1' : '0');
 
-      // Append media files
       mediaFiles.forEach((file, index) => {
         formData.append(`media_${index}`, {
           uri: file.uri,
@@ -180,18 +181,18 @@ export default function AddItemScreen() {
         } as any);
       });
 
-      // Use FormData instead of JSON for file upload
       await addItem(formData as any);
 
       setTitle('');
       setDescription('');
-      setType('lost');
+      setType(params.type === 'found' ? 'found' : 'lost');
       setDate(null);
       setIsAnonymous(false);
       setMediaFiles([]);
 
       Alert.alert('Success', 'Item created successfully.');
-    } catch (submitError) {
+      router.back();
+    } catch {
       Alert.alert('Failed to create item', 'Please check your connection and try again.');
     }
   };
@@ -199,7 +200,7 @@ export default function AddItemScreen() {
   if (loadingData) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#2563EB" />
+        <ActivityIndicator size="large" color="#2563eb" />
         <Text style={styles.loadingText}>Loading categories and locations...</Text>
       </View>
     );
@@ -208,10 +209,10 @@ export default function AddItemScreen() {
   if (error) {
     return (
       <SafeAreaView style={styles.screen}>
-        <StatusBar style="dark" backgroundColor="#F1F5F9" translucent={false} />
+        <StatusBar style="dark" backgroundColor="#f4f8fc" translucent={false} />
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={loadLookupData} activeOpacity={0.85}>
+          <TouchableOpacity style={styles.retryButton} onPress={loadLookupData} activeOpacity={0.88}>
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
         </View>
@@ -221,11 +222,8 @@ export default function AddItemScreen() {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <StatusBar style="dark" backgroundColor="#F1F5F9" translucent={false} />
-      <KeyboardAvoidingView
-        style={styles.keyboardWrapper}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+      <StatusBar style="dark" backgroundColor="#f4f8fc" translucent={false} />
+      <KeyboardAvoidingView style={styles.keyboardWrapper} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
@@ -233,113 +231,110 @@ export default function AddItemScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.card}>
-            <Text style={styles.heading}>Add Item</Text>
+            <Text style={styles.heading}>Create a report</Text>
+            <Text style={styles.subheading}>Share clear details so the right person can recognize the item quickly.</Text>
 
-        <Text style={styles.label}>Type</Text>
-        <View style={styles.segmentRow}>
-          <TouchableOpacity
-            style={[styles.segmentButton, type === 'lost' && styles.segmentButtonActive]}
-            onPress={() => setType('lost')}
-            activeOpacity={0.85}
-          >
-            <Text style={[styles.segmentButtonText, type === 'lost' && styles.segmentButtonTextActive]}>Lost</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.segmentButton, type === 'found' && styles.segmentButtonActive]}
-            onPress={() => setType('found')}
-            activeOpacity={0.85}
-          >
-            <Text style={[styles.segmentButtonText, type === 'found' && styles.segmentButtonTextActive]}>Found</Text>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.label}>Title</Text>
-        <TextInput
-          placeholder="e.g. Black Wallet"
-          placeholderTextColor="#94A3B8"
-          value={title}
-          onChangeText={setTitle}
-          style={styles.input}
-        />
-
-        <Text style={styles.label}>Description</Text>
-        <TextInput
-          placeholder="Describe distinguishing details"
-          placeholderTextColor="#94A3B8"
-          value={description}
-          onChangeText={setDescription}
-          multiline
-          textAlignVertical="top"
-          style={[styles.input, styles.textArea]}
-        />
-
-        <Text style={styles.label}>Category</Text>
-        <TouchableOpacity style={styles.selectButton} onPress={() => setCategoryModalVisible(true)} activeOpacity={0.85}>
-          <Text style={selectedCategory ? styles.selectButtonText : styles.placeholderText}>
-            {selectedCategory ? selectedCategory.name : 'Select a category'}
-          </Text>
-        </TouchableOpacity>
-
-        <Text style={styles.label}>Location</Text>
-        <TouchableOpacity style={styles.selectButton} onPress={() => setLocationModalVisible(true)} activeOpacity={0.85}>
-          <Text style={selectedLocation ? styles.selectButtonText : styles.placeholderText}>
-            {selectedLocation ? selectedLocation.name : 'Select a location'}
-          </Text>
-        </TouchableOpacity>
-
-        <Text style={styles.label}>Date</Text>
-        <TouchableOpacity
-          style={[styles.selectButton, styles.dateButton]}
-          onPress={() => setDatePickerVisible(true)}
-          activeOpacity={0.85}
-        >
-          <View style={styles.dateRow}>
-            <View>
-              <Text style={styles.dateLabel}>Select Date</Text>
-              <Text style={date ? styles.dateValue : styles.placeholderText}>{formatDateLabel(date)}</Text>
+            <Text style={styles.label}>Type</Text>
+            <View style={styles.segmentRow}>
+              <TouchableOpacity
+                style={[styles.segmentButton, type === 'lost' && styles.segmentButtonActive]}
+                onPress={() => setType('lost')}
+                activeOpacity={0.88}
+              >
+                <Text style={[styles.segmentButtonText, type === 'lost' && styles.segmentButtonTextActive]}>Lost</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.segmentButton, type === 'found' && styles.segmentButtonActive]}
+                onPress={() => setType('found')}
+                activeOpacity={0.88}
+              >
+                <Text style={[styles.segmentButtonText, type === 'found' && styles.segmentButtonTextActive]}>Found</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.dateChevron}>⌄</Text>
-          </View>
-        </TouchableOpacity>
 
-        <Text style={styles.label}>Media</Text>
-        <TouchableOpacity style={styles.pickMediaButton} onPress={pickMedia} activeOpacity={0.85}>
-          <Text style={styles.pickMediaButtonText}>Pick Photo or File</Text>
-        </TouchableOpacity>
-
-        {mediaFiles.length > 0 ? (
-          <View style={styles.mediaList}>
-            <FlatList
-              data={mediaFiles}
-              scrollEnabled={false}
-              keyExtractor={(item, index) => `${item.uri}-${index}`}
-              renderItem={({ item, index }) => (
-                <View style={styles.mediaChip}>
-                  <Text style={styles.mediaChipText} numberOfLines={1}>
-                    {item.name}
-                  </Text>
-                  <TouchableOpacity onPress={() => removeMediaFile(index)}>
-                    <Text style={styles.mediaRemoveText}>Remove</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
+            <Text style={styles.label}>Title</Text>
+            <TextInput
+              placeholder="e.g. Black wallet"
+              placeholderTextColor="#94a3b8"
+              value={title}
+              onChangeText={setTitle}
+              style={styles.input}
             />
-          </View>
-        ) : null}
 
-        <View style={styles.row}>
-          <Text style={styles.label}>Report Anonymously</Text>
-          <Switch value={isAnonymous} onValueChange={setIsAnonymous} />
-        </View>
+            <Text style={styles.label}>Description</Text>
+            <TextInput
+              placeholder="Describe important details like color, brand, or where it was seen"
+              placeholderTextColor="#94a3b8"
+              value={description}
+              onChangeText={setDescription}
+              multiline
+              textAlignVertical="top"
+              style={[styles.input, styles.textArea]}
+            />
 
-          <TouchableOpacity
-            style={[styles.submitButton, (loading || !title.trim()) && styles.submitButtonDisabled]}
-            onPress={handleSubmit}
-            activeOpacity={0.85}
-            disabled={loading || !title.trim()}
-          >
-            <Text style={styles.submitButtonText}>{loading ? 'Creating...' : 'Add Item'}</Text>
-          </TouchableOpacity>
+            <Text style={styles.label}>Category</Text>
+            <TouchableOpacity style={styles.selectButton} onPress={() => setCategoryModalVisible(true)} activeOpacity={0.88}>
+              <Text style={selectedCategory ? styles.selectButtonText : styles.placeholderText}>
+                {selectedCategory ? selectedCategory.name : 'Select a category'}
+              </Text>
+            </TouchableOpacity>
+
+            <Text style={styles.label}>Location</Text>
+            <TouchableOpacity style={styles.selectButton} onPress={() => setLocationModalVisible(true)} activeOpacity={0.88}>
+              <Text style={selectedLocation ? styles.selectButtonText : styles.placeholderText}>
+                {selectedLocation ? selectedLocation.name : 'Select a location'}
+              </Text>
+            </TouchableOpacity>
+
+            <Text style={styles.label}>Date</Text>
+            <TouchableOpacity style={styles.selectButton} onPress={() => setDatePickerVisible(true)} activeOpacity={0.88}>
+              <View style={styles.dateRow}>
+                <View>
+                  <Text style={styles.dateLabel}>Reported date</Text>
+                  <Text style={date ? styles.dateValue : styles.placeholderText}>{formatDateLabel(date)}</Text>
+                </View>
+                <Text style={styles.dateArrow}>{'>'}</Text>
+              </View>
+            </TouchableOpacity>
+
+            <Text style={styles.label}>Media</Text>
+            <TouchableOpacity style={styles.pickMediaButton} onPress={pickMedia} activeOpacity={0.88}>
+              <Text style={styles.pickMediaButtonText}>Add photo or file</Text>
+            </TouchableOpacity>
+
+            {mediaFiles.length > 0 ? (
+              <View style={styles.mediaList}>
+                <FlatList
+                  data={mediaFiles}
+                  scrollEnabled={false}
+                  keyExtractor={(item, index) => `${item.uri}-${index}`}
+                  renderItem={({ item, index }) => (
+                    <View style={styles.mediaChip}>
+                      <Text style={styles.mediaChipText} numberOfLines={1}>
+                        {item.name}
+                      </Text>
+                      <TouchableOpacity onPress={() => removeMediaFile(index)}>
+                        <Text style={styles.mediaRemoveText}>Remove</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                />
+              </View>
+            ) : null}
+
+            <View style={styles.row}>
+              <Text style={styles.label}>Report anonymously</Text>
+              <Switch value={isAnonymous} onValueChange={setIsAnonymous} />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.submitButton, (loading || !title.trim()) && styles.submitButtonDisabled]}
+              onPress={handleSubmit}
+              activeOpacity={0.88}
+              disabled={loading || !title.trim()}
+            >
+              <Text style={styles.submitButtonText}>{loading ? 'Creating...' : 'Publish report'}</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -349,8 +344,8 @@ export default function AddItemScreen() {
           <View style={[styles.modalCard, styles.calendarCard]}>
             <View style={styles.calendarHeader}>
               <View>
-                <Text style={styles.modalTitle}>Select Date</Text>
-                <Text style={styles.modalSubtitle}>Choose the day from the calendar below</Text>
+                <Text style={styles.modalTitle}>Select date</Text>
+                <Text style={styles.modalSubtitle}>Choose the day for this report.</Text>
               </View>
               <TouchableOpacity style={styles.modalHeaderAction} onPress={() => setDatePickerVisible(false)}>
                 <Text style={styles.modalHeaderActionText}>Close</Text>
@@ -368,27 +363,27 @@ export default function AddItemScreen() {
                 const [year, month, dayOfMonth] = day.dateString.split('-').map(Number);
                 setDate(new Date(year, month - 1, dayOfMonth));
               }}
-              markedDates={date ? { [getLocalDateKey(date)]: { selected: true, selectedColor: '#2563EB' } } : {}}
+              markedDates={date ? { [getLocalDateKey(date)]: { selected: true, selectedColor: '#2563eb' } } : {}}
               theme={{
-                backgroundColor: '#FFFFFF',
-                calendarBackground: '#FFFFFF',
-                textSectionTitleColor: '#64748B',
-                selectedDayBackgroundColor: '#2563EB',
-                selectedDayTextColor: '#FFFFFF',
-                todayTextColor: '#0F766E',
-                dayTextColor: '#0F172A',
-                monthTextColor: '#0F172A',
-                arrowColor: '#2563EB',
+                backgroundColor: '#ffffff',
+                calendarBackground: '#ffffff',
+                textSectionTitleColor: '#64748b',
+                selectedDayBackgroundColor: '#2563eb',
+                selectedDayTextColor: '#ffffff',
+                todayTextColor: '#2563eb',
+                dayTextColor: '#10233f',
+                monthTextColor: '#10233f',
+                arrowColor: '#2563eb',
                 textDayFontWeight: '600',
                 textMonthFontWeight: '700',
                 textDayHeaderFontWeight: '700',
               }}
             />
             <View style={styles.calendarActions}>
-              <TouchableOpacity style={styles.calendarActionSecondary} onPress={() => setDate(new Date())} activeOpacity={0.85}>
+              <TouchableOpacity style={styles.calendarActionSecondary} onPress={() => setDate(new Date())} activeOpacity={0.88}>
                 <Text style={styles.calendarActionSecondaryText}>Today</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.calendarActionSecondary} onPress={() => setDate(null)} activeOpacity={0.85}>
+              <TouchableOpacity style={styles.calendarActionSecondary} onPress={() => setDate(null)} activeOpacity={0.88}>
                 <Text style={styles.calendarActionSecondaryText}>Clear</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.modalCloseButton} onPress={() => setDatePickerVisible(false)}>
@@ -402,7 +397,7 @@ export default function AddItemScreen() {
       <Modal visible={categoryModalVisible} transparent animationType="fade" onRequestClose={() => setCategoryModalVisible(false)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Select Category</Text>
+            <Text style={styles.modalTitle}>Select category</Text>
             <FlatList
               data={categories}
               keyExtractor={(item) => item.category_id.toString()}
@@ -428,7 +423,7 @@ export default function AddItemScreen() {
       <Modal visible={locationModalVisible} transparent animationType="fade" onRequestClose={() => setLocationModalVisible(false)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Select Location</Text>
+            <Text style={styles.modalTitle}>Select location</Text>
             <FlatList
               data={locations}
               keyExtractor={(item) => item.location_id.toString()}
@@ -457,83 +452,77 @@ export default function AddItemScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#f4f8fc',
   },
   keyboardWrapper: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    backgroundColor: '#F1F5F9',
-    paddingTop: 16,
-    justifyContent: 'center',
-    alignItems: 'stretch',
+    padding: 16,
   },
   card: {
-    width: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 18,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    elevation: 4,
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#dbe7f3',
   },
   heading: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#10233f',
   },
   subheading: {
-    marginTop: 6,
+    marginTop: 8,
     marginBottom: 18,
     fontSize: 14,
-    color: '#475569',
+    lineHeight: 21,
+    color: '#526175',
   },
   centerContainer: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#f4f8fc',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
   },
   loadingText: {
     marginTop: 12,
-    color: '#475569',
+    color: '#526175',
     fontSize: 15,
   },
   errorText: {
-    color: '#DC2626',
+    color: '#dc2626',
     fontSize: 15,
     textAlign: 'center',
     marginBottom: 12,
   },
   retryButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#2563eb',
     borderRadius: 12,
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
   retryButtonText: {
-    color: '#FFFFFF',
+    color: '#ffffff',
     fontWeight: '700',
   },
   label: {
     marginBottom: 8,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#334155',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderColor: '#dbe7f3',
+    borderRadius: 14,
+    backgroundColor: '#f8fbff',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     fontSize: 15,
-    color: '#0F172A',
+    color: '#10233f',
     marginBottom: 14,
   },
   textArea: {
@@ -546,39 +535,40 @@ const styles = StyleSheet.create({
   },
   segmentButton: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#FFFFFF',
+    borderColor: '#dbe7f3',
+    backgroundColor: '#f8fbff',
     paddingVertical: 12,
     alignItems: 'center',
   },
   segmentButtonActive: {
-    borderColor: '#2563EB',
-    backgroundColor: '#DBEAFE',
+    borderColor: '#2563eb',
+    backgroundColor: '#eaf2ff',
   },
   segmentButtonText: {
-    color: '#334155',
-    fontWeight: '600',
+    color: '#526175',
+    fontWeight: '700',
   },
   segmentButtonTextActive: {
-    color: '#1D4ED8',
+    color: '#1d4ed8',
   },
   selectButton: {
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    borderColor: '#dbe7f3',
+    borderRadius: 14,
+    backgroundColor: '#f8fbff',
+    paddingHorizontal: 14,
+    paddingVertical: 13,
     marginBottom: 14,
   },
   selectButtonText: {
-    color: '#0F172A',
+    color: '#10233f',
     fontSize: 15,
   },
-  dateButton: {
-    paddingVertical: 14,
+  placeholderText: {
+    color: '#94a3b8',
+    fontSize: 15,
   },
   dateRow: {
     flexDirection: 'row',
@@ -587,35 +577,33 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   dateLabel: {
-    color: '#334155',
+    color: '#526175',
     fontSize: 13,
     fontWeight: '700',
     marginBottom: 2,
   },
   dateValue: {
-    color: '#0F172A',
+    color: '#10233f',
     fontSize: 15,
     fontWeight: '700',
   },
-  dateChevron: {
-    color: '#64748B',
+  dateArrow: {
+    color: '#64748b',
     fontSize: 18,
     fontWeight: '700',
   },
-  placeholderText: {
-    color: '#94A3B8',
-    fontSize: 15,
-  },
   pickMediaButton: {
-    backgroundColor: '#0F766E',
-    borderRadius: 12,
+    backgroundColor: '#eef4fb',
+    borderRadius: 14,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 13,
     marginBottom: 14,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#dbe7f3',
   },
   pickMediaButtonText: {
-    color: '#FFFFFF',
+    color: '#1e40af',
     fontWeight: '700',
     fontSize: 15,
   },
@@ -624,20 +612,20 @@ const styles = StyleSheet.create({
   },
   mediaChip: {
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 12,
+    borderColor: '#dbe7f3',
+    borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginBottom: 10,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#f8fbff',
   },
   mediaChipText: {
-    color: '#0F172A',
+    color: '#10233f',
     marginBottom: 6,
   },
   mediaRemoveText: {
-    color: '#DC2626',
-    fontWeight: '600',
+    color: '#dc2626',
+    fontWeight: '700',
     fontSize: 13,
   },
   row: {
@@ -648,30 +636,30 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     marginTop: 4,
-    backgroundColor: '#2563EB',
-    borderRadius: 12,
-    paddingVertical: 13,
+    backgroundColor: '#2563eb',
+    borderRadius: 14,
+    paddingVertical: 14,
     alignItems: 'center',
   },
   submitButtonDisabled: {
-    backgroundColor: '#93C5FD',
+    backgroundColor: '#93c5fd',
   },
   submitButtonText: {
-    color: '#FFFFFF',
+    color: '#ffffff',
     fontSize: 16,
     fontWeight: '700',
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    backgroundColor: 'rgba(15, 23, 42, 0.38)',
     justifyContent: 'center',
     padding: 20,
   },
   modalCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
     padding: 18,
-    maxHeight: '70%',
+    maxHeight: '72%',
     width: '100%',
   },
   calendarCard: {
@@ -684,18 +672,24 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 12,
   },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#10233f',
+    marginBottom: 4,
+  },
   modalSubtitle: {
-    color: '#64748B',
+    color: '#64748b',
     fontSize: 13,
   },
   modalHeaderAction: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#f4f8fc',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
   },
   modalHeaderActionText: {
-    color: '#0F172A',
+    color: '#10233f',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -706,40 +700,34 @@ const styles = StyleSheet.create({
   },
   calendarActionSecondary: {
     flex: 1,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#eef4fb',
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
   },
   calendarActionSecondaryText: {
-    color: '#0F172A',
+    color: '#10233f',
     fontSize: 14,
     fontWeight: '700',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 4,
   },
   modalOption: {
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: '#eef3f8',
   },
   modalOptionText: {
     fontSize: 15,
-    color: '#0F172A',
+    color: '#10233f',
   },
   modalCloseButton: {
     marginTop: 14,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#2563eb',
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
   },
   modalCloseButtonText: {
-    color: '#FFFFFF',
+    color: '#ffffff',
     fontWeight: '700',
   },
 });

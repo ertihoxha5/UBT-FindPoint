@@ -2,6 +2,7 @@ import type { Media } from './MediaModel';
 
 export type Item = {
   item_id: number;
+  user_id?: number | null;
   title: string;
   description?: string;
 
@@ -10,8 +11,10 @@ export type Item = {
 
   category_id: number;
   location_id: number;
+  category_name?: string;
+  location_name?: string;
 
-  date?: Date;
+  date?: string | Date;
   reward?: string;
 
   is_anonymous: boolean;
@@ -19,4 +22,6 @@ export type Item = {
   created_at?: string;
   updated_at?: string;
   media: Media[];
+  poster_name?: string;
+  fullName?: string;
 };

@@ -1,3 +1,4 @@
+-- Active: 1774977057822@@localhost@3306@findpoint_db
 CREATE DATABASE IF NOT EXISTS findpoint_db;
 
 
@@ -15,6 +16,18 @@ CREATE TABLE users (
   isActive BOOLEAN DEFAULT TRUE,
   createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   lastLogin TIMESTAMP NULL
+);
+
+CREATE TABLE user_profiles (
+  profile_id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL UNIQUE,
+  bio TEXT,
+  avatar_url VARCHAR(255),
+  faculty VARCHAR(100),
+  phone_number VARCHAR(20),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(userId) ON DELETE CASCADE
 );
 
 CREATE TABLE categories (
@@ -69,4 +82,4 @@ CREATE TABLE media (
 );
 
 ALTER TABLE items 
-CHANGE found_data date Date;
+CHANGE found_date date Date;

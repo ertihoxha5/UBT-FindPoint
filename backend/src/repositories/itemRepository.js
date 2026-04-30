@@ -14,6 +14,8 @@ const hasColumn = async (tableName, columnName) => {
   return rows.length > 0;
 };
 
+export const itemsSupportUserId = async () => hasColumn("items", "user_id");
+
 export const createItem = async (item) => {
   const connection = await db.getConnection();
 
@@ -152,8 +154,8 @@ export const createItemWithFiles = async (item, mediaUrls) => {
   }
 };
 
-export const getItems = async ({ type = null, status = null } = {}) => {
-  const hasUserId = await hasColumn("items", "user_id");
+export const getItems = async ({ type = null, status = null, userId = null, limit = null } = {}) => {
+  const hasUserId = await itemsSupportUserId();
 
   const joins = ["LEFT JOIN media m ON m.item_id = i.item_id"];
   const where = [];
@@ -173,9 +175,15 @@ export const getItems = async ({ type = null, status = null } = {}) => {
     params.push(status);
   }
 
+  if (userId && hasUserId) {
+    where.push("i.user_id = ?");
+    params.push(userId);
+  }
+
   const sql = `
     SELECT
       i.item_id,
+      ${hasUserId ? "i.user_id" : "NULL"} AS user_id,
       i.title,
       i.description,
       i.type,
@@ -187,13 +195,18 @@ export const getItems = async ({ type = null, status = null } = {}) => {
       i.is_anonymous,
       i.created_at,
       i.updated_at,
+      c.name AS category_name,
+      l.name AS location_name,
       ${hasUserId ? "u.fullName" : "NULL"} AS fullName,
       GROUP_CONCAT(m.url ORDER BY m.created_at SEPARATOR ',') AS media_urls
     FROM items i
+    LEFT JOIN categories c ON c.category_id = i.category_id
+    LEFT JOIN locations l ON l.location_id = i.location_id
     ${joins.join("\n")}
     ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
     GROUP BY
       i.item_id,
+      ${hasUserId ? "i.user_id," : ""}
       i.title,
       i.description,
       i.type,
@@ -205,11 +218,14 @@ export const getItems = async ({ type = null, status = null } = {}) => {
       i.is_anonymous,
       i.created_at,
       i.updated_at,
+      c.name,
+      l.name,
       ${hasUserId ? "u.fullName" : "i.item_id"}
     ORDER BY i.created_at DESC
+    ${limit ? "LIMIT ?" : ""}
   `;
 
-  const [rows] = await db.query(sql, params);
+  const [rows] = await db.query(sql, limit ? [...params, limit] : params);
 
   return rows.map((row) => ({
     ...row,

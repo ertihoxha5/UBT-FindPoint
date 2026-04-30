@@ -1,22 +1,6 @@
-import jwt from "jsonwebtoken";
-import { createItem, createItemWithFiles, getItems } from "../repositories/itemRepository.js";
+import { createItem, createItemWithFiles, getItems, itemsSupportUserId } from "../repositories/itemRepository.js";
 import fs from "fs";
-
-const getUserIdFromRequest = (req) => {
-  const authHeader = req.headers.authorization || "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
-
-  if (!token) {
-    return null;
-  }
-
-  try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
-    return payload?.userId || null;
-  } catch {
-    return null;
-  }
-};
+import { getUserIdFromRequest, requireUserId } from "../utils/auth.js";
 
 export const addItem = async (req, res) => {
   try {
@@ -109,14 +93,16 @@ export const listItems = async (req, res) => {
   try {
     let type = req.query.type ? String(req.query.type) : null;
     let status = req.query.status ? String(req.query.status) : null;
+    const userId = req.query.userId ? Number(req.query.userId) : null;
+    const recent = req.query.recent === "true";
+    const limit = recent ? Number(req.query.limit || 6) : null;
 
-    // Support callers that use status=lost/found to mean type.
     if (!type && (status === "lost" || status === "found")) {
       type = status;
       status = null;
     }
 
-    const items = await getItems({ type, status });
+    const items = await getItems({ type, status, userId, limit });
 
     const response = items.map((item) => ({
       ...item,
@@ -126,5 +112,28 @@ export const listItems = async (req, res) => {
     res.json(response);
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+};
+
+export const listMyItems = async (req, res) => {
+  try {
+    const userId = requireUserId(req);
+    const supportsUserId = await itemsSupportUserId();
+
+    if (!supportsUserId) {
+      return res.json([]);
+    }
+
+    const items = await getItems({ userId });
+
+    const response = items.map((item) => ({
+      ...item,
+      poster_name: item.is_anonymous ? "Anonymous" : item.fullName || "Unknown user",
+    }));
+
+    res.json(response);
+  } catch (error) {
+    const statusCode = error.message === "Unauthorized" ? 401 : 400;
+    res.status(statusCode).json({ error: error.message });
   }
 };

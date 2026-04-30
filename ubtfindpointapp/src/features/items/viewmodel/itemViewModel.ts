@@ -7,10 +7,33 @@ type ItemMediaInput = {
 };
 
 type NewItemPayload = Omit<Item, 'item_id' | 'created_at' | 'updated_at' | 'media'> & {
-  // media for creation is a simpler input form
   media?: ItemMediaInput[];
-  // allow Date or string when creating
   date?: string | Date;
+};
+
+type FetchItemsOptions = {
+  type?: 'lost' | 'found';
+  recent?: boolean;
+  limit?: number;
+  userId?: number;
+};
+
+export const fetchItems = async (options: FetchItemsOptions = {}) => {
+  const response = await api.get('/items', {
+    params: {
+      type: options.type,
+      userId: options.userId,
+      recent: options.recent ? 'true' : undefined,
+      limit: options.limit,
+    },
+  });
+
+  return Array.isArray(response.data) ? response.data : [];
+};
+
+export const fetchMyItems = async () => {
+  const response = await api.get('/items/mine');
+  return Array.isArray(response.data) ? response.data : [];
 };
 
 export const useItemViewModel = () => {
@@ -22,25 +45,22 @@ export const useItemViewModel = () => {
       setLoading(true);
       setError(null);
 
-      // Check if item is FormData (file upload) or JSON object
       if (item instanceof FormData) {
-        // For FormData, don't add status here, it will be handled by backend
         const response = await api.post('/items/upload', item, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
         });
         return response.data;
-      } else {
-        // For JSON, ensure Date values are stringified (backend expects string dates)
-        const payload: any = { ...item, status: 'open' };
-        if (payload.date instanceof Date) {
-          payload.date = payload.date.toISOString().split('T')[0];
-        }
-
-        const response = await api.post('/items', payload);
-        return response.data;
       }
+
+      const payload: Record<string, any> = { ...item, status: 'open' };
+      if (payload.date instanceof Date) {
+        payload.date = payload.date.toISOString().split('T')[0];
+      }
+
+      const response = await api.post('/items', payload);
+      return response.data;
     } catch (err: any) {
       setError(err?.response?.data?.error || err.message || 'Failed to create item');
       throw err;

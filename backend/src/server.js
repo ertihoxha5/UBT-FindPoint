@@ -16,7 +16,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-initDB();
+void initDB();
 
 app.use(cors());
 app.use(express.json());
