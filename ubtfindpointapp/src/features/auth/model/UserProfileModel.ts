@@ -10,5 +10,6 @@ export type UserProfile = {
   createdAt?: string;
   lastLogin?: string | null;
   isActive: boolean;
+  isBlocked?: boolean;
   profileUpdatedAt?: string | null;
 };

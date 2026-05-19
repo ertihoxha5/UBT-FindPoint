@@ -5,6 +5,7 @@ import {
   listItems,
   listMyItems,
   markMyItemFound,
+  reportItem,
   updateMyItem,
   uploadItem,
 } from "../controllers/itemController.js";
@@ -18,6 +19,7 @@ router.post("/", addItem);
 router.post("/upload", upload.any(), uploadItem);
 router.put("/:itemId", updateMyItem);
 router.patch("/:itemId/found", markMyItemFound);
+router.post("/:itemId/report", reportItem);
 router.delete("/:itemId", deleteMyItem);
 
 export default router;

@@ -34,6 +34,7 @@ export const findUserById = async (userId) => {
           u.createdAt,
           u.lastLogin,
           u.isActive,
+          u.isBlocked,
           p.bio,
           p.avatar_url,
           p.faculty AS profileFaculty,
@@ -53,6 +54,7 @@ export const findUserById = async (userId) => {
           u.createdAt,
           u.lastLogin,
           u.isActive,
+          u.isBlocked,
           NULL AS bio,
           NULL AS avatar_url,
           NULL AS profileFaculty,
@@ -93,6 +95,116 @@ export const createUser = async (fullName, email, password) => {
 
 export const updateUserLastLogin = async (userId) => {
   await db.query("UPDATE users SET lastLogin = CURRENT_TIMESTAMP WHERE userId = ?", [userId]);
+};
+
+export const listUsersForAdmin = async ({ search = "", status = "all" } = {}) => {
+  const profileTableExists = await hasTable("user_profiles");
+  const where = [];
+  const params = [];
+
+  if (search) {
+    where.push("(u.fullName LIKE ? OR u.email LIKE ?)");
+    params.push(`%${search}%`, `%${search}%`);
+  }
+
+  if (status === "blocked") {
+    where.push("u.isBlocked = 1");
+  } else if (status === "active") {
+    where.push("u.isBlocked = 0");
+  }
+
+  const [rows] = await db.query(
+    profileTableExists
+      ? `SELECT
+          u.userId,
+          u.fullName,
+          u.email,
+          u.role,
+          u.faculty,
+          u.phoneNumber,
+          u.profilePictureUrl,
+          u.createdAt,
+          u.lastLogin,
+          u.isActive,
+          u.isBlocked,
+          p.bio,
+          p.updated_at AS profileUpdatedAt,
+          COUNT(i.item_id) AS itemCount
+        FROM users u
+        LEFT JOIN user_profiles p ON p.user_id = u.userId
+        LEFT JOIN items i ON i.user_id = u.userId
+        ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+        GROUP BY
+          u.userId, u.fullName, u.email, u.role, u.faculty, u.phoneNumber, u.profilePictureUrl,
+          u.createdAt, u.lastLogin, u.isActive, u.isBlocked, p.bio, p.updated_at
+        ORDER BY u.createdAt DESC`
+      : `SELECT
+          u.userId,
+          u.fullName,
+          u.email,
+          u.role,
+          u.faculty,
+          u.phoneNumber,
+          u.profilePictureUrl,
+          u.createdAt,
+          u.lastLogin,
+          u.isActive,
+          u.isBlocked,
+          NULL AS bio,
+          NULL AS profileUpdatedAt,
+          COUNT(i.item_id) AS itemCount
+        FROM users u
+        LEFT JOIN items i ON i.user_id = u.userId
+        ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+        GROUP BY
+          u.userId, u.fullName, u.email, u.role, u.faculty, u.phoneNumber, u.profilePictureUrl,
+          u.createdAt, u.lastLogin, u.isActive, u.isBlocked
+        ORDER BY u.createdAt DESC`,
+    params
+  );
+
+  return rows;
+};
+
+export const updateUserByAdmin = async (userId, payload) => {
+  await db.query(
+    `UPDATE users
+     SET
+       fullName = ?,
+       email = ?,
+       role = ?,
+       faculty = ?,
+       phoneNumber = ?,
+       isBlocked = ?,
+       isActive = ?
+     WHERE userId = ?`,
+    [
+      payload.fullName,
+      payload.email,
+      payload.role,
+      payload.faculty || null,
+      payload.phoneNumber || null,
+      payload.isBlocked ? 1 : 0,
+      payload.isActive ? 1 : 0,
+      userId,
+    ]
+  );
+
+  if (await hasTable("user_profiles")) {
+    await db.query(
+      `INSERT INTO user_profiles (user_id, bio, faculty, phone_number)
+       VALUES (?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         bio = VALUES(bio),
+         faculty = VALUES(faculty),
+         phone_number = VALUES(phone_number)`,
+      [userId, payload.bio || null, payload.faculty || null, payload.phoneNumber || null]
+    );
+  }
+};
+
+export const setUserBlockedState = async (userId, isBlocked) => {
+  await db.query("UPDATE users SET isBlocked = ?, isActive = ? WHERE userId = ?", [isBlocked ? 1 : 0, isBlocked ? 0 : 1, userId]);
 };
 
 export const updateUserProfile = async (userId, payload) => {

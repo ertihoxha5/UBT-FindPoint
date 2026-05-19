@@ -1,4 +1,5 @@
 import {
+  createItemReport,
   createItem,
   createItemWithFiles,
   deleteOwnedItem,
@@ -19,6 +20,7 @@ export const addItem = async (req, res) => {
       description: req.body.description,
       type: req.body.type,
       status: req.body.status || "open",
+      moderation_status: "pending",
       category_id: Number(req.body.category_id),
       location_id: Number(req.body.location_id),
       date: req.body.date || null,
@@ -48,6 +50,7 @@ export const uploadItem = async (req, res) => {
       description: req.body.description || "",
       type: req.body.type,
       status: "open",
+      moderation_status: "pending",
       category_id: Number(req.body.category_id),
       location_id: Number(req.body.location_id),
       date: req.body.date || null,
@@ -110,7 +113,7 @@ export const listItems = async (req, res) => {
       status = null;
     }
 
-    const items = await getItems({ type, status, userId, limit });
+    const items = await getItems({ type, status, userId, limit, moderationStatus: "approved" });
 
     const response = items.map((item) => ({
       ...item,
@@ -232,6 +235,25 @@ export const deleteMyItem = async (req, res) => {
     }
 
     res.json({ message: "Report deleted" });
+  } catch (error) {
+    const statusCode = error.message === "Unauthorized" ? 401 : 400;
+    res.status(statusCode).json({ error: error.message });
+  }
+};
+
+export const reportItem = async (req, res) => {
+  try {
+    const reportedBy = requireUserId(req);
+    const itemId = Number(req.params.itemId);
+    const reason = String(req.body.reason || "").trim();
+    const details = String(req.body.details || "").trim();
+
+    if (!itemId || !reason) {
+      return res.status(400).json({ error: "A valid itemId and reason are required." });
+    }
+
+    const reportId = await createItemReport({ itemId, reportedBy, reason, details });
+    res.status(201).json({ message: "Item reported", reportId });
   } catch (error) {
     const statusCode = error.message === "Unauthorized" ? 401 : 400;
     res.status(statusCode).json({ error: error.message });

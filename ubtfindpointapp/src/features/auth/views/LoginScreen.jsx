@@ -59,8 +59,8 @@ export default function LoginScreen() {
     setLoading(true);
 
     try {
-      await login(trimmedEmail, trimmedPassword);
-      router.replace('/home');
+      const result = await login(trimmedEmail, trimmedPassword);
+      router.replace(result?.user?.role === 'admin' ? '/admin' : '/home');
     } catch (error) {
       const message = (error?.response?.data?.error || error?.message || 'Please try again.').trim();
       const loweredMessage = message.toLowerCase();
@@ -69,6 +69,8 @@ export default function LoginScreen() {
         setEmailError('User does not exist.');
       } else if (loweredMessage.includes('invalid password')) {
         setPasswordError('Password is incorrect.');
+      } else if (loweredMessage.includes('blocked')) {
+        setAuthError('This account has been blocked by an administrator.');
       } else {
         setAuthError(message);
       }

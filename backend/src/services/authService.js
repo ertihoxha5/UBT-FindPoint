@@ -22,6 +22,7 @@ export const registerUser = async (fullName, email, password) => {
 export const loginUser = async (email, password) => {
   const user = await findUserByEmail(email);
   if (!user) throw new Error("User not found");
+  if (user.isBlocked) throw new Error("Account blocked");
 
   const isMatch = await bcrypt.compare(password, user.passwordHash);
   if (!isMatch) throw new Error("Invalid password");
@@ -59,6 +60,7 @@ export const getUserProfile = async (userId) => {
     createdAt: user.createdAt,
     lastLogin: user.lastLogin,
     isActive: Boolean(user.isActive),
+    isBlocked: Boolean(user.isBlocked),
     profileUpdatedAt: user.profileUpdatedAt || null,
   };
 };

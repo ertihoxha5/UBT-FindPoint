@@ -14,9 +14,15 @@ CREATE TABLE users (
   phoneNumber VARCHAR(20),
   profilePictureUrl VARCHAR(255),
   isActive BOOLEAN DEFAULT TRUE,
+  isBlocked BOOLEAN DEFAULT FALSE,
   createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   lastLogin TIMESTAMP NULL
 );
+
+-- Insert admin users manually with role='admin', for example:
+
+ INSERT INTO users (fullName, email, passwordHash, role) VALUES 
+ ('Admin User', 'admin@example.com', '$2a$12$X9rEhgmOWrqLpMZa.jInyOzC9S00si4IwMQHnwGqJuiRu7mHGhp/S', 'admin');
 
 CREATE TABLE user_profiles (
   profile_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -50,6 +56,7 @@ CREATE TABLE items (
 
     type ENUM('lost', 'found') NOT NULL,
     status ENUM('open', 'claimed', 'resolved', 'expired') NOT NULL,
+    moderation_status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
 
     category_id INT,
     location_id INT,
@@ -97,4 +104,30 @@ CREATE TABLE messages (
   sender_id INT NOT NULL,
   message TEXT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE item_reports (
+  report_id INT AUTO_INCREMENT PRIMARY KEY,
+  item_id INT NOT NULL,
+  reported_by INT NOT NULL,
+  reason VARCHAR(100) NOT NULL,
+  details TEXT,
+  status ENUM('pending', 'approved', 'dismissed') NOT NULL DEFAULT 'pending',
+  reviewed_by INT NULL,
+  reviewed_at TIMESTAMP NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (item_id) REFERENCES items(item_id) ON DELETE CASCADE,
+  FOREIGN KEY (reported_by) REFERENCES users(userId) ON DELETE CASCADE,
+  FOREIGN KEY (reviewed_by) REFERENCES users(userId) ON DELETE SET NULL
+);
+
+CREATE TABLE admin_activity (
+  activity_id INT AUTO_INCREMENT PRIMARY KEY,
+  admin_user_id INT NOT NULL,
+  action_type VARCHAR(60) NOT NULL,
+  action_target VARCHAR(60) NOT NULL,
+  target_id INT NULL,
+  details TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (admin_user_id) REFERENCES users(userId) ON DELETE CASCADE
 );

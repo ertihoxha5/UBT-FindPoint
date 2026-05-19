@@ -76,6 +76,45 @@ export const initDB = async () => {
       if (!(await hasForeignKey("items", "fk_items_user_id"))) {
         await db.query("ALTER TABLE items ADD CONSTRAINT fk_items_user_id FOREIGN KEY (user_id) REFERENCES users(userId)");
       }
+
+      if (!(await hasColumn("items", "moderation_status"))) {
+        await db.query("ALTER TABLE items ADD COLUMN moderation_status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending' AFTER status");
+        await db.query("UPDATE items SET moderation_status = 'approved'");
+      }
+    }
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS item_reports (
+        report_id INT AUTO_INCREMENT PRIMARY KEY,
+        item_id INT NOT NULL,
+        reported_by INT NOT NULL,
+        reason VARCHAR(100) NOT NULL,
+        details TEXT,
+        status ENUM('pending', 'approved', 'dismissed') NOT NULL DEFAULT 'pending',
+        reviewed_by INT NULL,
+        reviewed_at TIMESTAMP NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (item_id) REFERENCES items(item_id) ON DELETE CASCADE,
+        FOREIGN KEY (reported_by) REFERENCES users(userId) ON DELETE CASCADE,
+        FOREIGN KEY (reviewed_by) REFERENCES users(userId) ON DELETE SET NULL
+      )
+    `);
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS admin_activity (
+        activity_id INT AUTO_INCREMENT PRIMARY KEY,
+        admin_user_id INT NOT NULL,
+        action_type VARCHAR(60) NOT NULL,
+        action_target VARCHAR(60) NOT NULL,
+        target_id INT NULL,
+        details TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (admin_user_id) REFERENCES users(userId) ON DELETE CASCADE
+      )
+    `);
+
+    if (await hasTable("users") && !(await hasColumn("users", "isBlocked"))) {
+      await db.query("ALTER TABLE users ADD COLUMN isBlocked BOOLEAN NOT NULL DEFAULT FALSE AFTER isActive");
     }
   } catch (error) {
     console.error("DB init failed", error.message);
