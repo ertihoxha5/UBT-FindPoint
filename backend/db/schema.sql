@@ -84,7 +84,6 @@ CREATE TABLE media (
 ALTER TABLE items 
 CHANGE found_date date Date;
 
- /*Ketu jane tabelat e konversationit dhe mesazheve */
 CREATE TABLE conversations (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user1_id INT NOT NULL,

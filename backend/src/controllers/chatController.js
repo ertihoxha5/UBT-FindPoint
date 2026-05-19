@@ -1,43 +1,149 @@
-import db from "../db.js";
+import db from "../config/db.js";
+import { requireUserId } from "../utils/auth.js";
 
-// GET conversations (1-on-1)
-export const getConversations = (req, res) => {
-  const { userId } = req.params;
-
-  const sql = `
-    SELECT * FROM conversations
-    WHERE user1_id = ? OR user2_id = ?
-  `;
-
-  db.query(sql, [userId, userId], (err, result) => {
-    if (err) return res.status(500).json(err);
-    res.json(result);
-  });
-};
-
-// GET messages
-export const getMessages = (req, res) => {
-  const { conversationId } = req.params;
-
-  db.query(
-    "SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at ASC",
-    [conversationId],
-    (err, result) => {
-      if (err) return res.status(500).json(err);
-      res.json(result);
-    }
+const ensureConversationParticipant = async (conversationId, userId) => {
+  const [rows] = await db.query(
+    `SELECT id, user1_id, user2_id
+     FROM conversations
+     WHERE id = ? AND (user1_id = ? OR user2_id = ?)`,
+    [conversationId, userId, userId]
   );
+
+  return rows[0] || null;
 };
 
-// SEND message
-export const sendMessage = (req, res) => {
-  const { conversation_id, sender_id, message } = req.body;
+export const getConversations = async (req, res) => {
+  try {
+    const userId = requireUserId(req);
 
-  const sql =
-    "INSERT INTO messages (conversation_id, sender_id, message) VALUES (?, ?, ?)";
+    const [rows] = await db.query(
+      `SELECT
+         c.id,
+         c.user1_id,
+         c.user2_id,
+         c.created_at,
+         CASE
+           WHEN c.user1_id = ? THEN u2.userId
+           ELSE u1.userId
+         END AS other_user_id,
+         CASE
+           WHEN c.user1_id = ? THEN u2.fullName
+           ELSE u1.fullName
+         END AS other_user_name,
+         CASE
+           WHEN c.user1_id = ? THEN u2.profilePictureUrl
+           ELSE u1.profilePictureUrl
+         END AS other_user_avatar,
+         m.message AS last_message,
+         m.created_at AS last_message_at
+       FROM conversations c
+       LEFT JOIN users u1 ON u1.userId = c.user1_id
+       LEFT JOIN users u2 ON u2.userId = c.user2_id
+       LEFT JOIN messages m ON m.id = (
+         SELECT id
+         FROM messages
+         WHERE conversation_id = c.id
+         ORDER BY created_at DESC, id DESC
+         LIMIT 1
+       )
+       WHERE c.user1_id = ? OR c.user2_id = ?
+       ORDER BY COALESCE(m.created_at, c.created_at) DESC, c.id DESC`,
+      [userId, userId, userId, userId, userId]
+    );
 
-  db.query(sql, [conversation_id, sender_id, message], (err, result) => {
-    if (err) return res.status(500).json(err);
-    res.json({ success: true });
-  });
+    res.json(rows);
+  } catch (error) {
+    const statusCode = error.message === "Unauthorized" ? 401 : 400;
+    res.status(statusCode).json({ error: error.message });
+  }
+};
+
+export const createConversation = async (req, res) => {
+  try {
+    const userId = requireUserId(req);
+    const participantId = Number(req.body.participantId);
+
+    if (!participantId || participantId === userId) {
+      return res.status(400).json({ error: "A different participantId is required." });
+    }
+
+    const [existingRows] = await db.query(
+      `SELECT id, user1_id, user2_id, created_at
+       FROM conversations
+       WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)
+       LIMIT 1`,
+      [userId, participantId, participantId, userId]
+    );
+
+    if (existingRows[0]) {
+      return res.json(existingRows[0]);
+    }
+
+    const [result] = await db.query("INSERT INTO conversations (user1_id, user2_id) VALUES (?, ?)", [userId, participantId]);
+    res.status(201).json({
+      id: result.insertId,
+      user1_id: userId,
+      user2_id: participantId,
+    });
+  } catch (error) {
+    const statusCode = error.message === "Unauthorized" ? 401 : 400;
+    res.status(statusCode).json({ error: error.message });
+  }
+};
+
+export const getMessages = async (req, res) => {
+  try {
+    const userId = requireUserId(req);
+    const conversationId = Number(req.params.conversationId);
+    const conversation = await ensureConversationParticipant(conversationId, userId);
+
+    if (!conversation) {
+      return res.status(404).json({ error: "Conversation not found." });
+    }
+
+    const [rows] = await db.query(
+      `SELECT m.id, m.conversation_id, m.sender_id, m.message, m.created_at, u.fullName AS sender_name
+       FROM messages m
+       LEFT JOIN users u ON u.userId = m.sender_id
+       WHERE m.conversation_id = ?
+       ORDER BY m.created_at ASC, m.id ASC`,
+      [conversationId]
+    );
+
+    res.json(rows);
+  } catch (error) {
+    const statusCode = error.message === "Unauthorized" ? 401 : 400;
+    res.status(statusCode).json({ error: error.message });
+  }
+};
+
+export const sendMessage = async (req, res) => {
+  try {
+    const userId = requireUserId(req);
+    const conversationId = Number(req.body.conversation_id);
+    const message = String(req.body.message || "").trim();
+
+    if (!conversationId || !message) {
+      return res.status(400).json({ error: "conversation_id and message are required." });
+    }
+
+    const conversation = await ensureConversationParticipant(conversationId, userId);
+
+    if (!conversation) {
+      return res.status(404).json({ error: "Conversation not found." });
+    }
+
+    const [result] = await db.query(
+      "INSERT INTO messages (conversation_id, sender_id, message) VALUES (?, ?, ?)",
+      [conversationId, userId, message]
+    );
+
+    res.status(201).json({
+      success: true,
+      id: result.insertId,
+    });
+  } catch (error) {
+    const statusCode = error.message === "Unauthorized" ? 401 : 400;
+    res.status(statusCode).json({ error: error.message });
+  }
 };

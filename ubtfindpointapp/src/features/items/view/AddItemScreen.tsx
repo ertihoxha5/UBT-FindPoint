@@ -23,7 +23,7 @@ import { useCategoryViewModel } from '../../category/viewmodel/useCategoryViewMo
 import { useLocationViewModel } from '../../location/viewmodel/useLocationViewModel';
 import type { Category } from '../../category/model/CategoryModel';
 import type { Location } from '../../location/model/LocationModel';
-import { useItemViewModel } from '../viewmodel/itemViewModel';
+import { updateMyItem, useItemViewModel } from '../viewmodel/itemViewModel';
 
 interface MediaFile {
   uri: string;
@@ -33,8 +33,19 @@ interface MediaFile {
 
 export default function AddItemScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ type?: string }>();
+  const params = useLocalSearchParams<{
+    itemId?: string;
+    type?: string;
+    title?: string;
+    description?: string;
+    categoryId?: string;
+    locationId?: string;
+    reward?: string;
+    date?: string;
+    isAnonymous?: string;
+  }>();
   const { addItem, loading } = useItemViewModel();
+  const isEditMode = Boolean(params.itemId);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -43,6 +54,7 @@ export default function AddItemScreen() {
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [locationId, setLocationId] = useState<number | null>(null);
+  const [reward, setReward] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [loadingData, setLoadingData] = useState(true);
@@ -111,6 +123,27 @@ export default function AddItemScreen() {
     loadLookupData();
   }, []);
 
+  useEffect(() => {
+    if (!isEditMode) {
+      return;
+    }
+
+    setTitle(typeof params.title === 'string' ? params.title : '');
+    setDescription(typeof params.description === 'string' ? params.description : '');
+    setType(params.type === 'found' ? 'found' : 'lost');
+    setReward(typeof params.reward === 'string' ? params.reward : '');
+    setIsAnonymous(params.isAnonymous === 'true');
+    setCategoryId(params.categoryId ? Number(params.categoryId) : null);
+    setLocationId(params.locationId ? Number(params.locationId) : null);
+
+    if (typeof params.date === 'string' && params.date) {
+      const [year, month, dayOfMonth] = params.date.split('-').map(Number);
+      if (year && month && dayOfMonth) {
+        setDate(new Date(year, month - 1, dayOfMonth));
+      }
+    }
+  }, [isEditMode, params.categoryId, params.date, params.description, params.isAnonymous, params.locationId, params.reward, params.title, params.type]);
+
   const pickMedia = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -171,7 +204,25 @@ export default function AddItemScreen() {
       if (chosenDate) {
         formData.append('date', chosenDate);
       }
+      formData.append('reward', reward.trim());
       formData.append('is_anonymous', isAnonymous ? '1' : '0');
+
+      if (isEditMode) {
+        await updateMyItem(Number(params.itemId), {
+          title: title.trim(),
+          description: description.trim() || '',
+          type,
+          category_id: categoryId,
+          location_id: locationId,
+          date: chosenDate || undefined,
+          reward: reward.trim() || '',
+          is_anonymous: isAnonymous,
+        });
+
+        Alert.alert('Success', 'Report updated successfully.');
+        router.back();
+        return;
+      }
 
       mediaFiles.forEach((file, index) => {
         formData.append(`media_${index}`, {
@@ -188,12 +239,13 @@ export default function AddItemScreen() {
       setType(params.type === 'found' ? 'found' : 'lost');
       setDate(null);
       setIsAnonymous(false);
+      setReward('');
       setMediaFiles([]);
 
       Alert.alert('Success', 'Item created successfully.');
       router.back();
     } catch {
-      Alert.alert('Failed to create item', 'Please check your connection and try again.');
+      Alert.alert(isEditMode ? 'Failed to update item' : 'Failed to create item', 'Please check your connection and try again.');
     }
   };
 
@@ -231,8 +283,15 @@ export default function AddItemScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.card}>
-            <Text style={styles.heading}>Create a report</Text>
-            <Text style={styles.subheading}>Share clear details so the right person can recognize the item quickly.</Text>
+            <View style={styles.eyebrowBadge}>
+              <Text style={styles.eyebrowText}>{isEditMode ? 'Update report' : 'New report'}</Text>
+            </View>
+            <Text style={styles.heading}>{isEditMode ? 'Edit report' : 'Create a report'}</Text>
+            <Text style={styles.subheading}>
+              {isEditMode
+                ? 'Update the report details you want other users to see.'
+                : 'Share clear details so the right person can recognize the item quickly.'}
+            </Text>
 
             <Text style={styles.label}>Type</Text>
             <View style={styles.segmentRow}>
@@ -297,28 +356,40 @@ export default function AddItemScreen() {
               </View>
             </TouchableOpacity>
 
-            <Text style={styles.label}>Media</Text>
-            <TouchableOpacity style={styles.pickMediaButton} onPress={pickMedia} activeOpacity={0.88}>
-              <Text style={styles.pickMediaButtonText}>Add photo or file</Text>
-            </TouchableOpacity>
+            <Text style={styles.label}>Reward</Text>
+            <TextInput
+              placeholder="Optional reward"
+              placeholderTextColor="#94a3b8"
+              value={reward}
+              onChangeText={setReward}
+              style={styles.input}
+            />
 
-            {mediaFiles.length > 0 ? (
+            {!isEditMode ? (
+              <>
+                <Text style={styles.label}>Media</Text>
+                <TouchableOpacity style={styles.pickMediaButton} onPress={pickMedia} activeOpacity={0.88}>
+                  <Text style={styles.pickMediaButtonText}>Add photo or file</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <View style={styles.editHintCard}>
+                <Text style={styles.editHintText}>Media attachments stay unchanged while editing this report.</Text>
+              </View>
+            )}
+
+            {!isEditMode && mediaFiles.length > 0 ? (
               <View style={styles.mediaList}>
-                <FlatList
-                  data={mediaFiles}
-                  scrollEnabled={false}
-                  keyExtractor={(item, index) => `${item.uri}-${index}`}
-                  renderItem={({ item, index }) => (
-                    <View style={styles.mediaChip}>
-                      <Text style={styles.mediaChipText} numberOfLines={1}>
-                        {item.name}
-                      </Text>
-                      <TouchableOpacity onPress={() => removeMediaFile(index)}>
-                        <Text style={styles.mediaRemoveText}>Remove</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                />
+                {mediaFiles.map((item, index) => (
+                  <View key={`${item.uri}-${index}`} style={styles.mediaChip}>
+                    <Text style={styles.mediaChipText} numberOfLines={1}>
+                      {item.name}
+                    </Text>
+                    <TouchableOpacity onPress={() => removeMediaFile(index)}>
+                      <Text style={styles.mediaRemoveText}>Remove</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
               </View>
             ) : null}
 
@@ -333,7 +404,9 @@ export default function AddItemScreen() {
               activeOpacity={0.88}
               disabled={loading || !title.trim()}
             >
-              <Text style={styles.submitButtonText}>{loading ? 'Creating...' : 'Publish report'}</Text>
+              <Text style={styles.submitButtonText}>
+                {loading ? (isEditMode ? 'Saving...' : 'Creating...') : isEditMode ? 'Save changes' : 'Publish report'}
+              </Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -452,7 +525,7 @@ export default function AddItemScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#f4f8fc',
+    backgroundColor: '#edf4f8',
   },
   keyboardWrapper: {
     flex: 1,
@@ -460,16 +533,37 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 16,
+    paddingBottom: 108,
   },
   card: {
     backgroundColor: '#ffffff',
-    borderRadius: 24,
+    borderRadius: 28,
     padding: 20,
     borderWidth: 1,
     borderColor: '#dbe7f3',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
+  },
+  eyebrowBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#eef4fb',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    marginBottom: 10,
+  },
+  eyebrowText: {
+    color: '#2563eb',
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.7,
   },
   heading: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '800',
     color: '#10233f',
   },
@@ -500,9 +594,9 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     backgroundColor: '#2563eb',
-    borderRadius: 12,
+    borderRadius: 14,
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingVertical: 12,
   },
   retryButtonText: {
     color: '#ffffff',
@@ -517,10 +611,10 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: '#dbe7f3',
-    borderRadius: 14,
-    backgroundColor: '#f8fbff',
+    borderRadius: 16,
+    backgroundColor: '#f7fbff',
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 14,
     fontSize: 15,
     color: '#10233f',
     marginBottom: 14,
@@ -535,11 +629,11 @@ const styles = StyleSheet.create({
   },
   segmentButton: {
     flex: 1,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#dbe7f3',
-    backgroundColor: '#f8fbff',
-    paddingVertical: 12,
+    backgroundColor: '#f7fbff',
+    paddingVertical: 14,
     alignItems: 'center',
   },
   segmentButtonActive: {
@@ -556,10 +650,10 @@ const styles = StyleSheet.create({
   selectButton: {
     borderWidth: 1,
     borderColor: '#dbe7f3',
-    borderRadius: 14,
-    backgroundColor: '#f8fbff',
+    borderRadius: 16,
+    backgroundColor: '#f7fbff',
     paddingHorizontal: 14,
-    paddingVertical: 13,
+    paddingVertical: 14,
     marginBottom: 14,
   },
   selectButtonText: {
@@ -594,9 +688,9 @@ const styles = StyleSheet.create({
   },
   pickMediaButton: {
     backgroundColor: '#eef4fb',
-    borderRadius: 14,
+    borderRadius: 16,
     paddingHorizontal: 14,
-    paddingVertical: 13,
+    paddingVertical: 14,
     marginBottom: 14,
     alignItems: 'center',
     borderWidth: 1,
@@ -610,14 +704,28 @@ const styles = StyleSheet.create({
   mediaList: {
     marginBottom: 14,
   },
+  editHintCard: {
+    backgroundColor: '#eef4fb',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#dbe7f3',
+  },
+  editHintText: {
+    color: '#526175',
+    fontSize: 14,
+    lineHeight: 20,
+  },
   mediaChip: {
     borderWidth: 1,
     borderColor: '#dbe7f3',
-    borderRadius: 14,
+    borderRadius: 16,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
     marginBottom: 10,
-    backgroundColor: '#f8fbff',
+    backgroundColor: '#f7fbff',
   },
   mediaChipText: {
     color: '#10233f',
@@ -637,9 +745,14 @@ const styles = StyleSheet.create({
   submitButton: {
     marginTop: 4,
     backgroundColor: '#2563eb',
-    borderRadius: 14,
-    paddingVertical: 14,
+    borderRadius: 18,
+    paddingVertical: 16,
     alignItems: 'center',
+    shadowColor: '#1d4ed8',
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 5,
   },
   submitButtonDisabled: {
     backgroundColor: '#93c5fd',
@@ -657,7 +770,7 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 18,
     maxHeight: '72%',
     width: '100%',
@@ -683,7 +796,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   modalHeaderAction: {
-    backgroundColor: '#f4f8fc',
+    backgroundColor: '#eef4fb',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
@@ -701,7 +814,7 @@ const styles = StyleSheet.create({
   calendarActionSecondary: {
     flex: 1,
     backgroundColor: '#eef4fb',
-    borderRadius: 12,
+    borderRadius: 14,
     paddingVertical: 12,
     alignItems: 'center',
   },
@@ -722,8 +835,8 @@ const styles = StyleSheet.create({
   modalCloseButton: {
     marginTop: 14,
     backgroundColor: '#2563eb',
-    borderRadius: 12,
-    paddingVertical: 12,
+    borderRadius: 14,
+    paddingVertical: 13,
     alignItems: 'center',
   },
   modalCloseButtonText: {

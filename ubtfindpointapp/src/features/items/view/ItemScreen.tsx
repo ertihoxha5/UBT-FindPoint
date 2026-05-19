@@ -12,6 +12,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import HomeCalendar from '@/src/features/calendar/components/HomeCalendar';
 import type { Item } from '../model/ItemModel';
 import { fetchItems } from '../viewmodel/itemViewModel';
 import { formatRelativeItemDate, getAssetUrl } from '../viewmodel/itemHelpers';
@@ -44,8 +45,8 @@ export default function ItemScreen() {
       setError(null);
 
       const [lost, found] = await Promise.all([
-        fetchItems({ type: 'lost', recent: true, limit: 4 }),
-        fetchItems({ type: 'found', recent: true, limit: 4 }),
+        fetchItems({ type: 'lost', recent: true, limit: 3 }),
+        fetchItems({ type: 'found', recent: true, limit: 3 }),
       ]);
 
       setRecentLost(lost);
@@ -94,6 +95,7 @@ export default function ItemScreen() {
       pathname: '/home/details',
       params: {
         itemId: String(item.item_id),
+        userId: String(item.user_id || ''),
         title: item.title,
         description: item.description || '',
         status: String(item.status),
@@ -102,8 +104,12 @@ export default function ItemScreen() {
         createdAt: item.created_at || '',
         imageUrl,
         category: item.category_name || '',
+        categoryId: String(item.category_id),
         location: item.location_name || '',
+        locationId: String(item.location_id),
         reward: item.reward || '',
+        date: item.date ? String(item.date) : '',
+        isAnonymous: item.is_anonymous ? 'true' : 'false',
       },
     });
   };
@@ -130,11 +136,24 @@ export default function ItemScreen() {
         ListHeaderComponent={
           <View>
             <View style={styles.heroCard}>
-              <Text style={styles.heroEyebrow}>UBT FindPoint</Text>
-              <Text style={styles.heroTitle}>The place where we help each other find what matters.</Text>
+              <View style={styles.heroBadge}>
+                <Text style={styles.heroEyebrow}>UBT FindPoint</Text>
+              </View>
+              <Text style={styles.heroTitle}>Find faster. Return things sooner. Keep campus connected.</Text>
               <Text style={styles.heroSubtitle}>
                 Stay close to the newest campus reports, submit a post in seconds, and move quickly between lost and found activity.
               </Text>
+
+              <View style={styles.heroHighlightRow}>
+                <View style={styles.heroHighlightCard}>
+                  <Text style={styles.heroHighlightValue}>{String(openLost)}</Text>
+                  <Text style={styles.heroHighlightLabel}>Urgent lost</Text>
+                </View>
+                <View style={styles.heroHighlightCard}>
+                  <Text style={styles.heroHighlightValue}>{String(openFound)}</Text>
+                  <Text style={styles.heroHighlightLabel}>Recent found</Text>
+                </View>
+              </View>
 
               <View style={styles.heroActionRow}>
                 <TouchableOpacity
@@ -212,6 +231,11 @@ export default function ItemScreen() {
             )}
           </View>
         )}
+        ListFooterComponent={
+          <View style={styles.footerWrap}>
+            <HomeCalendar />
+          </View>
+        }
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       />
@@ -231,11 +255,11 @@ function MetricCard({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#f4f8fc',
+    backgroundColor: '#edf4f8',
   },
   content: {
     paddingHorizontal: 16,
-    paddingBottom: 28,
+    paddingBottom: 108,
   },
   centerState: {
     flex: 1,
@@ -251,57 +275,86 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     marginTop: 14,
-    backgroundColor: '#ffffff',
-    borderRadius: 28,
+    backgroundColor: '#10233f',
+    borderRadius: 30,
     padding: 22,
-    borderWidth: 1,
-    borderColor: '#dbe7f3',
+    overflow: 'hidden',
+  },
+  heroBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
   },
   heroEyebrow: {
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.8,
-    color: '#2563eb',
+    color: '#dbeafe',
     textTransform: 'uppercase',
   },
   heroTitle: {
     marginTop: 10,
-    fontSize: 31,
-    lineHeight: 38,
+    fontSize: 32,
+    lineHeight: 39,
     fontWeight: '800',
-    color: '#10233f',
+    color: '#ffffff',
   },
   heroSubtitle: {
     marginTop: 10,
     fontSize: 15,
     lineHeight: 23,
-    color: '#526175',
+    color: '#d8e6f5',
+  },
+  heroHighlightRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 18,
+  },
+  heroHighlightCard: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+  },
+  heroHighlightValue: {
+    color: '#ffffff',
+    fontSize: 24,
+    fontWeight: '800',
+  },
+  heroHighlightLabel: {
+    color: '#c9dbef',
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 4,
   },
   heroActionRow: {
     gap: 12,
     marginTop: 20,
   },
   primaryButton: {
-    backgroundColor: '#2563eb',
-    borderRadius: 16,
-    paddingVertical: 15,
+    backgroundColor: '#ffffff',
+    borderRadius: 18,
+    paddingVertical: 16,
     alignItems: 'center',
   },
   primaryButtonText: {
-    color: '#ffffff',
+    color: '#10233f',
     fontSize: 15,
     fontWeight: '800',
   },
   secondaryButton: {
-    backgroundColor: '#eef4fb',
-    borderRadius: 16,
-    paddingVertical: 15,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 18,
+    paddingVertical: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#dbe7f3',
+    borderColor: 'rgba(255,255,255,0.16)',
   },
   secondaryButtonText: {
-    color: '#1e40af',
+    color: '#ffffff',
     fontSize: 15,
     fontWeight: '800',
   },
@@ -313,11 +366,17 @@ const styles = StyleSheet.create({
   metricCard: {
     flex: 1,
     backgroundColor: '#ffffff',
-    borderRadius: 20,
+    borderRadius: 22,
     paddingVertical: 18,
+    paddingHorizontal: 10,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#dbe7f3',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 2,
   },
   metricValue: {
     fontSize: 24,
@@ -332,7 +391,7 @@ const styles = StyleSheet.create({
   },
   insightCard: {
     marginTop: 14,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fbff',
     borderRadius: 22,
     padding: 18,
     borderWidth: 1,
@@ -357,10 +416,18 @@ const styles = StyleSheet.create({
   sectionCard: {
     marginTop: 16,
     backgroundColor: '#ffffff',
-    borderRadius: 24,
+    borderRadius: 26,
     padding: 16,
     borderWidth: 1,
     borderColor: '#dbe7f3',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
+  },
+  footerWrap: {
+    marginTop: 16,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -381,15 +448,19 @@ const styles = StyleSheet.create({
   },
   sectionLink: {
     marginTop: 4,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
     color: '#2563eb',
+    backgroundColor: '#eef4fb',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 999,
   },
   postCard: {
     marginTop: 12,
-    backgroundColor: '#f8fbff',
-    borderRadius: 18,
-    padding: 14,
+    backgroundColor: '#f7fbff',
+    borderRadius: 20,
+    padding: 15,
     borderWidth: 1,
     borderColor: '#e5edf6',
   },
@@ -409,7 +480,7 @@ const styles = StyleSheet.create({
   },
   postTitle: {
     marginTop: 8,
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: '800',
     color: '#10233f',
   },

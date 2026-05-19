@@ -1,4 +1,12 @@
-import { createItem, createItemWithFiles, getItems, itemsSupportUserId } from "../repositories/itemRepository.js";
+import {
+  createItem,
+  createItemWithFiles,
+  deleteOwnedItem,
+  getItems,
+  itemsSupportUserId,
+  updateOwnedItem,
+  updateOwnedItemStatus,
+} from "../repositories/itemRepository.js";
 import fs from "fs";
 import { getUserIdFromRequest, requireUserId } from "../utils/auth.js";
 
@@ -132,6 +140,98 @@ export const listMyItems = async (req, res) => {
     }));
 
     res.json(response);
+  } catch (error) {
+    const statusCode = error.message === "Unauthorized" ? 401 : 400;
+    res.status(statusCode).json({ error: error.message });
+  }
+};
+
+export const updateMyItem = async (req, res) => {
+  try {
+    const userId = requireUserId(req);
+    const itemId = Number(req.params.itemId);
+    const supportsUserId = await itemsSupportUserId();
+
+    if (!supportsUserId) {
+      return res.status(400).json({ error: "Item ownership is not available in this database." });
+    }
+
+    const payload = {
+      title: req.body.title,
+      description: req.body.description || "",
+      type: req.body.type,
+      category_id: Number(req.body.category_id),
+      location_id: Number(req.body.location_id),
+      date: req.body.date || null,
+      reward: req.body.reward || null,
+      is_anonymous: req.body.is_anonymous === true || req.body.is_anonymous === "true" || req.body.is_anonymous === "1",
+    };
+
+    if (!itemId || !payload.title || !payload.type || !payload.category_id || !payload.location_id) {
+      return res.status(400).json({ error: "title, type, category_id and location_id are required" });
+    }
+
+    const updated = await updateOwnedItem(itemId, userId, payload);
+
+    if (!updated) {
+      return res.status(404).json({ error: "Report not found or not owned by this user." });
+    }
+
+    res.json({ message: "Report updated" });
+  } catch (error) {
+    const statusCode = error.message === "Unauthorized" ? 401 : 400;
+    res.status(statusCode).json({ error: error.message });
+  }
+};
+
+export const markMyItemFound = async (req, res) => {
+  try {
+    const userId = requireUserId(req);
+    const itemId = Number(req.params.itemId);
+    const supportsUserId = await itemsSupportUserId();
+
+    if (!supportsUserId) {
+      return res.status(400).json({ error: "Item ownership is not available in this database." });
+    }
+
+    if (!itemId) {
+      return res.status(400).json({ error: "A valid itemId is required" });
+    }
+
+    const updated = await updateOwnedItemStatus(itemId, userId, { status: "resolved", type: "found" });
+
+    if (!updated) {
+      return res.status(404).json({ error: "Report not found or not owned by this user." });
+    }
+
+    res.json({ message: "Report marked as found" });
+  } catch (error) {
+    const statusCode = error.message === "Unauthorized" ? 401 : 400;
+    res.status(statusCode).json({ error: error.message });
+  }
+};
+
+export const deleteMyItem = async (req, res) => {
+  try {
+    const userId = requireUserId(req);
+    const itemId = Number(req.params.itemId);
+    const supportsUserId = await itemsSupportUserId();
+
+    if (!supportsUserId) {
+      return res.status(400).json({ error: "Item ownership is not available in this database." });
+    }
+
+    if (!itemId) {
+      return res.status(400).json({ error: "A valid itemId is required" });
+    }
+
+    const deleted = await deleteOwnedItem(itemId, userId);
+
+    if (!deleted) {
+      return res.status(404).json({ error: "Report not found or not owned by this user." });
+    }
+
+    res.json({ message: "Report deleted" });
   } catch (error) {
     const statusCode = error.message === "Unauthorized" ? 401 : 400;
     res.status(statusCode).json({ error: error.message });

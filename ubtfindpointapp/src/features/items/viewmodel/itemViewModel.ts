@@ -36,6 +36,30 @@ export const fetchMyItems = async () => {
   return Array.isArray(response.data) ? response.data : [];
 };
 
+export const updateMyItem = async (itemId: number, payload: {
+  title: string;
+  description?: string;
+  type: 'lost' | 'found';
+  category_id: number;
+  location_id: number;
+  date?: string;
+  reward?: string;
+  is_anonymous: boolean;
+}) => {
+  const response = await api.put(`/items/${itemId}`, payload);
+  return response.data;
+};
+
+export const markMyItemFound = async (itemId: number) => {
+  const response = await api.patch(`/items/${itemId}/found`);
+  return response.data;
+};
+
+export const deleteMyItem = async (itemId: number) => {
+  const response = await api.delete(`/items/${itemId}`);
+  return response.data;
+};
+
 export const useItemViewModel = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -5,7 +5,6 @@ import {
   FlatList,
   Image,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -18,6 +17,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useProfileViewModel } from '../viewmodel/useProfileViewModel';
 import { formatItemDate, getAssetUrl } from '../../items/viewmodel/itemHelpers';
+import { deleteMyItem, markMyItemFound } from '../../items/viewmodel/itemViewModel';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -28,6 +28,7 @@ export default function ProfileScreen() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [bio, setBio] = useState('');
   const [selectedPhoto, setSelectedPhoto] = useState<{ uri: string; name: string; type: string } | null>(null);
+  const [editingProfile, setEditingProfile] = useState(false);
 
   const hydrateForm = useCallback((user: any) => {
     setFullName(user?.fullName || '');
@@ -99,10 +100,17 @@ export default function ProfileScreen() {
       const updated = await updateProfile(formData);
       hydrateForm(updated);
       setSelectedPhoto(null);
+      setEditingProfile(false);
       Alert.alert('Profile updated', 'Your profile details were saved.');
     } catch {
       Alert.alert('Update failed', 'Please try again.');
     }
+  };
+
+  const onCancelEditProfile = () => {
+    hydrateForm(profile);
+    setSelectedPhoto(null);
+    setEditingProfile(false);
   };
 
   const onLogout = async () => {
@@ -126,6 +134,34 @@ export default function ProfileScreen() {
         },
       },
     ]);
+  };
+
+  const onDeletePost = (itemId: number) => {
+    Alert.alert('Delete report', 'This report will be removed permanently.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteMyItem(itemId);
+            await handleLoad();
+          } catch {
+            Alert.alert('Delete failed', 'Please try again.');
+          }
+        },
+      },
+    ]);
+  };
+
+  const onMarkFound = async (itemId: number) => {
+    try {
+      await markMyItemFound(itemId);
+      await handleLoad();
+      Alert.alert('Updated', 'The report has been marked as found.');
+    } catch {
+      Alert.alert('Update failed', 'Please try again.');
+    }
   };
 
   const stats = useMemo(() => {
@@ -177,9 +213,9 @@ export default function ProfileScreen() {
         keyExtractor={(item) => String(item.item_id)}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => handleLoad(true)} tintColor="#2563eb" />}
         ListHeaderComponent={
-          <ScrollView scrollEnabled={false}>
+          <View>
             <View style={styles.heroCard}>
-              <TouchableOpacity style={styles.avatarWrap} onPress={pickPhoto} activeOpacity={0.88}>
+              <TouchableOpacity style={styles.avatarWrap} onPress={editingProfile ? pickPhoto : undefined} activeOpacity={editingProfile ? 0.88 : 1}>
                 {avatarSource ? (
                   <Image source={avatarSource} style={styles.avatar} />
                 ) : (
@@ -188,9 +224,13 @@ export default function ProfileScreen() {
                   </View>
                 )}
               </TouchableOpacity>
+              <View style={styles.roleBadge}>
+                <Text style={styles.role}>{profile?.role || 'user'}</Text>
+              </View>
               <Text style={styles.name}>{profile?.fullName || 'User'}</Text>
-              <Text style={styles.role}>{profile?.role || 'user'}</Text>
-              <Text style={styles.helperText}>Tap the image to update your profile photo.</Text>
+              <Text style={styles.helperText}>
+                {editingProfile ? 'Tap the image to update your profile photo.' : 'Your profile details and reports live here.'}
+              </Text>
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
             </View>
 
@@ -211,30 +251,38 @@ export default function ProfileScreen() {
                   <Text style={styles.tableValue}>{row.value}</Text>
                 </View>
               ))}
-            </View>
-
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>Edit profile</Text>
-              <TextInput value={fullName} onChangeText={setFullName} placeholder="Full name" placeholderTextColor="#94a3b8" style={styles.input} />
-              <TextInput value={faculty} onChangeText={setFaculty} placeholder="Faculty" placeholderTextColor="#94a3b8" style={styles.input} />
-              <TextInput value={phoneNumber} onChangeText={setPhoneNumber} placeholder="Phone number" placeholderTextColor="#94a3b8" style={styles.input} />
-              <TextInput
-                value={bio}
-                onChangeText={setBio}
-                placeholder="Short bio"
-                placeholderTextColor="#94a3b8"
-                style={[styles.input, styles.textArea]}
-                multiline
-              />
-              <TouchableOpacity style={[styles.primaryButton, saving && styles.buttonDisabled]} onPress={onSave} activeOpacity={0.88} disabled={saving}>
-                <Text style={styles.primaryButtonText}>{saving ? 'Saving...' : 'Save profile'}</Text>
-              </TouchableOpacity>
+              {!editingProfile ? (
+                <TouchableOpacity style={styles.primaryButton} onPress={() => setEditingProfile(true)} activeOpacity={0.88}>
+                  <Text style={styles.primaryButtonText}>Edit profile</Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.editProfileWrap}>
+                  <Text style={styles.sectionTitle}>Edit profile</Text>
+                  <TextInput value={fullName} onChangeText={setFullName} placeholder="Full name" placeholderTextColor="#94a3b8" style={styles.input} />
+                  <TextInput value={faculty} onChangeText={setFaculty} placeholder="Faculty" placeholderTextColor="#94a3b8" style={styles.input} />
+                  <TextInput value={phoneNumber} onChangeText={setPhoneNumber} placeholder="Phone number" placeholderTextColor="#94a3b8" style={styles.input} />
+                  <TextInput
+                    value={bio}
+                    onChangeText={setBio}
+                    placeholder="Short bio"
+                    placeholderTextColor="#94a3b8"
+                    style={[styles.input, styles.textArea]}
+                    multiline
+                  />
+                  <TouchableOpacity style={[styles.primaryButton, saving && styles.buttonDisabled]} onPress={onSave} activeOpacity={0.88} disabled={saving}>
+                    <Text style={styles.primaryButtonText}>{saving ? 'Saving...' : 'Save profile'}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.secondaryInlineButton} onPress={onCancelEditProfile} activeOpacity={0.88}>
+                    <Text style={styles.secondaryInlineButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
 
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>My posts</Text>
             </View>
-          </ScrollView>
+          </View>
         }
         renderItem={({ item }) => {
           const imageUrl = item.media?.[0]?.url ? getAssetUrl(item.media[0].url) : '';
@@ -247,6 +295,7 @@ export default function ProfileScreen() {
                   pathname: '/home/details',
                   params: {
                     itemId: String(item.item_id),
+                    userId: String(item.user_id || profile?.userId || ''),
                     title: item.title,
                     description: item.description || '',
                     status: String(item.status),
@@ -255,8 +304,13 @@ export default function ProfileScreen() {
                     createdAt: item.created_at || '',
                     imageUrl,
                     category: item.category_name || '',
+                    categoryId: String(item.category_id),
                     location: item.location_name || '',
+                    locationId: String(item.location_id),
                     reward: item.reward || '',
+                    date: item.date ? String(item.date) : '',
+                    isAnonymous: item.is_anonymous ? 'true' : 'false',
+                    isOwner: 'true',
                   },
                 })
               }
@@ -265,10 +319,43 @@ export default function ProfileScreen() {
                 <Text style={styles.postType}>{item.type.toUpperCase()}</Text>
                 <Text style={styles.postDate}>{formatItemDate(item.created_at)}</Text>
               </View>
+              <Text style={styles.postStatus}>{String(item.status).toUpperCase()}</Text>
               <Text style={styles.postTitle}>{item.title}</Text>
               <Text style={styles.postDetails}>{(item.category_name || 'Uncategorized')} | {(item.location_name || 'Unknown place')}</Text>
               <Text style={styles.postDescription}>{item.description || 'No description provided.'}</Text>
               {imageUrl ? <Image source={{ uri: imageUrl }} style={styles.postImage} /> : null}
+              <View style={styles.postActions}>
+                <TouchableOpacity
+                  style={styles.postActionButton}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/home/report',
+                      params: {
+                        itemId: String(item.item_id),
+                        title: item.title,
+                        description: item.description || '',
+                        type: item.type,
+                        categoryId: String(item.category_id),
+                        locationId: String(item.location_id),
+                        reward: item.reward || '',
+                        date: item.date ? String(item.date) : '',
+                        isAnonymous: item.is_anonymous ? 'true' : 'false',
+                      },
+                    })
+                  }
+                  activeOpacity={0.88}
+                >
+                  <Text style={styles.postActionText}>Edit</Text>
+                </TouchableOpacity>
+                {item.status !== 'resolved' ? (
+                  <TouchableOpacity style={styles.postActionButton} onPress={() => onMarkFound(item.item_id)} activeOpacity={0.88}>
+                    <Text style={styles.postActionText}>Mark as found</Text>
+                  </TouchableOpacity>
+                ) : null}
+                <TouchableOpacity style={styles.postDeleteButton} onPress={() => onDeletePost(item.item_id)} activeOpacity={0.88}>
+                  <Text style={styles.postDeleteText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
             </TouchableOpacity>
           );
         }}
@@ -293,11 +380,11 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#f4f8fc',
+    backgroundColor: '#edf4f8',
   },
   content: {
     padding: 16,
-    paddingBottom: 28,
+    paddingBottom: 108,
   },
   centerState: {
     flex: 1,
@@ -311,29 +398,36 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   heroCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 26,
+    backgroundColor: '#10233f',
+    borderRadius: 28,
     padding: 20,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#dbe7f3',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 6,
   },
   avatarWrap: {
     marginBottom: 12,
   },
   avatar: {
-    width: 98,
-    height: 98,
-    borderRadius: 49,
+    width: 102,
+    height: 102,
+    borderRadius: 51,
     backgroundColor: '#dbe7f3',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.18)',
   },
   avatarPlaceholder: {
-    width: 98,
-    height: 98,
-    borderRadius: 49,
+    width: 102,
+    height: 102,
+    borderRadius: 51,
     backgroundColor: '#2563eb',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.18)',
   },
   avatarPlaceholderText: {
     color: '#ffffff',
@@ -343,19 +437,25 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#10233f',
+    color: '#ffffff',
+  },
+  roleBadge: {
+    marginBottom: 10,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
   },
   role: {
-    marginTop: 6,
     fontSize: 12,
     fontWeight: '800',
-    color: '#2563eb',
+    color: '#dbeafe',
     textTransform: 'uppercase',
   },
   helperText: {
     marginTop: 10,
     fontSize: 14,
-    color: '#526175',
+    color: '#d8e6f5',
     textAlign: 'center',
   },
   errorText: {
@@ -372,11 +472,16 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     backgroundColor: '#ffffff',
-    borderRadius: 18,
+    borderRadius: 20,
     paddingVertical: 16,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#dbe7f3',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 2,
   },
   statValue: {
     fontSize: 24,
@@ -391,10 +496,15 @@ const styles = StyleSheet.create({
   sectionCard: {
     marginTop: 14,
     backgroundColor: '#ffffff',
-    borderRadius: 22,
+    borderRadius: 24,
     padding: 16,
     borderWidth: 1,
     borderColor: '#dbe7f3',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 2,
   },
   sectionTitle: {
     fontSize: 19,
@@ -423,12 +533,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   input: {
-    height: 50,
+    height: 54,
     borderWidth: 1,
     borderColor: '#dbe7f3',
-    borderRadius: 14,
+    borderRadius: 16,
     paddingHorizontal: 14,
-    backgroundColor: '#f8fbff',
+    backgroundColor: '#f7fbff',
     marginBottom: 12,
     color: '#10233f',
     fontSize: 15,
@@ -439,8 +549,9 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   primaryButton: {
-    height: 50,
-    borderRadius: 14,
+    marginTop: 12,
+    height: 54,
+    borderRadius: 16,
     backgroundColor: '#2563eb',
     alignItems: 'center',
     justifyContent: 'center',
@@ -457,13 +568,33 @@ const styles = StyleSheet.create({
     marginTop: 14,
     marginBottom: 2,
   },
+  editProfileWrap: {
+    marginTop: 14,
+  },
+  secondaryInlineButton: {
+    marginTop: 10,
+    alignItems: 'center',
+    paddingVertical: 13,
+    borderRadius: 16,
+    backgroundColor: '#eef4fb',
+  },
+  secondaryInlineButtonText: {
+    color: '#1e40af',
+    fontSize: 15,
+    fontWeight: '700',
+  },
   postCard: {
     marginTop: 12,
     backgroundColor: '#ffffff',
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 16,
     borderWidth: 1,
     borderColor: '#dbe7f3',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 2,
   },
   postMeta: {
     flexDirection: 'row',
@@ -478,6 +609,12 @@ const styles = StyleSheet.create({
   postDate: {
     fontSize: 12,
     color: '#6b7b91',
+  },
+  postStatus: {
+    marginTop: 8,
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#1d4ed8',
   },
   postTitle: {
     marginTop: 8,
@@ -499,9 +636,37 @@ const styles = StyleSheet.create({
   postImage: {
     width: '100%',
     height: 180,
-    borderRadius: 14,
+    borderRadius: 16,
     marginTop: 12,
     backgroundColor: '#dbe7f3',
+  },
+  postActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 14,
+  },
+  postActionButton: {
+    backgroundColor: '#eef4fb',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  postActionText: {
+    color: '#1e40af',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  postDeleteButton: {
+    backgroundColor: '#fee2e2',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  postDeleteText: {
+    color: '#b91c1c',
+    fontSize: 13,
+    fontWeight: '700',
   },
   emptyText: {
     marginTop: 8,
@@ -516,8 +681,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#dbe7f3',
-    borderRadius: 16,
-    paddingVertical: 14,
+    borderRadius: 18,
+    paddingVertical: 15,
     alignItems: 'center',
   },
   secondaryButtonText: {
@@ -527,8 +692,8 @@ const styles = StyleSheet.create({
   },
   dangerButton: {
     backgroundColor: '#fee2e2',
-    borderRadius: 16,
-    paddingVertical: 14,
+    borderRadius: 18,
+    paddingVertical: 15,
     alignItems: 'center',
   },
   dangerButtonText: {

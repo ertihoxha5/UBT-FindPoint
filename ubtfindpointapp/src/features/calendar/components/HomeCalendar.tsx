@@ -1,18 +1,13 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  ActivityIndicator,
-} from 'react-native';
-
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Calendar } from 'react-native-calendars';
+import { useRouter } from 'expo-router';
 import api from '../../../services/api';
 import type { Item } from '../../items/model/ItemModel';
+import { getAssetUrl } from '../../items/viewmodel/itemHelpers';
 
 export default function HomeCalendar() {
+  const router = useRouter();
   const [items, setItems] = useState<Item[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
@@ -25,7 +20,6 @@ export default function HomeCalendar() {
     try {
       setLoading(true);
       const response = await api.get('/items');
-
       setItems(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.log('Calendar Error:', error);
@@ -34,159 +28,167 @@ export default function HomeCalendar() {
     }
   };
 
-  // 🔥 SUPER ROBUST DATE FIX (KY E ZGJIDH 100% BUGUN)
-  const getDateKey = (value?: string | Date) => {
-    if (!value) return null;
+  const getDateKey = useCallback((value?: string | Date) => {
+    if (!value) {
+      return null;
+    }
 
     const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return null;
+    }
 
-    if (isNaN(date.getTime())) return null;
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
 
-    return date.toISOString().split('T')[0]; // YYYY-MM-DD
-  };
+  const getItemCalendarDate = useCallback((item: Item) => getDateKey(item.date || item.created_at), [getDateKey]);
 
-  // 📅 MARKED DATES
   const markedDates = useMemo(() => {
     const marks: Record<string, any> = {};
 
     items.forEach((item) => {
-      const dateKey = getDateKey(item.date);
-      if (!dateKey) return;
+      const dateKey = getItemCalendarDate(item);
+      if (!dateKey) {
+        return;
+      }
+
+      const dot = {
+        key: `${item.item_id}-${item.type}`,
+        color: item.type === 'lost' ? '#2563eb' : '#059669',
+      };
 
       if (!marks[dateKey]) {
         marks[dateKey] = {
           marked: true,
-          dots: [],
+          dots: [dot],
         };
+        return;
       }
 
-      marks[dateKey].dots.push({
-        color: item.type === 'lost' ? '#2563EB' : '#059669',
-      });
+      marks[dateKey].marked = true;
+      marks[dateKey].dots = [...(marks[dateKey].dots || []), dot];
     });
 
     if (selectedDate) {
       marks[selectedDate] = {
         ...(marks[selectedDate] || {}),
         selected: true,
-        selectedColor: '#111827',
+        selectedColor: '#10233f',
       };
     }
 
     return marks;
-  }, [items, selectedDate]);
+  }, [getItemCalendarDate, items, selectedDate]);
 
-  // 🔍 FILTER BY DATE
-  const filteredItems = useMemo(() => {
-    return items.filter((item) => {
-      const dateKey = getDateKey(item.date);
-      return dateKey === selectedDate;
-    });
-  }, [items, selectedDate]);
+  const filteredItems = useMemo(
+    () => items.filter((item) => getItemCalendarDate(item) === selectedDate),
+    [getItemCalendarDate, items, selectedDate]
+  );
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2563EB" />
+        <ActivityIndicator size="large" color="#2563eb" />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {/* 📅 CALENDAR */}
+      <View style={styles.header}>
+        <Text style={styles.eyebrow}>Calendar</Text>
+        <Text style={styles.title}>Tap a date to see every post reported that day</Text>
+        <Text style={styles.subtitle}>Posts use the report date when available, and fall back to the created date so dates always feel responsive.</Text>
+      </View>
+
       <Calendar
         markedDates={markedDates}
-        markingType={'multi-dot'}
+        markingType="multi-dot"
         onDayPress={(day) => setSelectedDate(day.dateString)}
         maxDate={getDateKey(new Date()) || undefined}
         theme={{
-          todayTextColor: '#2563EB',
-          arrowColor: '#2563EB',
-          selectedDayBackgroundColor: '#111827',
+          calendarBackground: '#ffffff',
+          textSectionTitleColor: '#64748b',
+          selectedDayBackgroundColor: '#10233f',
+          selectedDayTextColor: '#ffffff',
+          todayTextColor: '#2563eb',
+          dayTextColor: '#10233f',
+          monthTextColor: '#10233f',
+          arrowColor: '#2563eb',
+          textDayFontWeight: '600',
+          textMonthFontWeight: '800',
+          textDayHeaderFontWeight: '700',
         }}
       />
 
-      {/* 📄 RESULTS */}
-      <View style={styles.resultContainer}>
-        <Text style={styles.title}>
-          Reported Items ({filteredItems.length})
+      <View style={styles.resultsWrap}>
+        <Text style={styles.resultsTitle}>
+          {selectedDate ? `Posts on ${selectedDate}` : 'Choose a date'}
         </Text>
 
-        {selectedDate === '' ? (
-          <Text style={styles.emptyText}>
-            Select a date to see reported items.
-          </Text>
+        {!selectedDate ? (
+          <Text style={styles.emptyText}>Tap any marked date above to open the posts for that day.</Text>
         ) : filteredItems.length === 0 ? (
-          <Text style={styles.emptyText}>
-            No items reported on this date.
-          </Text>
+          <Text style={styles.emptyText}>No posts were reported on this date.</Text>
         ) : (
-          <FlatList
-            data={filteredItems}
-            keyExtractor={(item) => item.item_id.toString()}
-            showsVerticalScrollIndicator={false}
-            renderItem={({ item }) => (
-              <TouchableOpacity activeOpacity={0.85} style={styles.card}>
+          filteredItems.map((item) => {
+            const imageUrl = item.media?.[0]?.url ? getAssetUrl(item.media[0].url) : '';
+            const displayName = item.is_anonymous ? 'Anonymous' : item.poster_name || item.fullName || 'Unknown user';
 
-                {/* TYPE */}
-                <View
-                  style={[
-                    styles.badge,
-                    {
-                      backgroundColor:
-                        item.type === 'lost'
-                          ? '#DBEAFE'
-                          : '#DCFCE7',
+            return (
+              <TouchableOpacity
+                key={String(item.item_id)}
+                activeOpacity={0.9}
+                style={styles.card}
+                onPress={() =>
+                  router.push({
+                    pathname: '/home/details',
+                    params: {
+                      itemId: String(item.item_id),
+                      userId: String(item.user_id || ''),
+                      title: item.title,
+                      description: item.description || '',
+                      status: String(item.status),
+                      type: item.type,
+                      poster: displayName,
+                      createdAt: item.created_at || '',
+                      imageUrl,
+                      category: item.category_name || '',
+                      categoryId: String(item.category_id),
+                      location: item.location_name || '',
+                      locationId: String(item.location_id),
+                      reward: item.reward || '',
+                      date: item.date ? String(item.date) : '',
+                      isAnonymous: item.is_anonymous ? 'true' : 'false',
                     },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.badgeText,
-                      {
-                        color:
-                          item.type === 'lost'
-                            ? '#1D4ED8'
-                            : '#15803D',
-                      },
-                    ]}
-                  >
-                    {item.type.toUpperCase()}
-                  </Text>
+                  })
+                }>
+                <View style={styles.cardHeader}>
+                  <View style={[styles.badge, item.type === 'lost' ? styles.badgeLost : styles.badgeFound]}>
+                    <Text style={[styles.badgeText, item.type === 'lost' ? styles.badgeTextLost : styles.badgeTextFound]}>
+                      {item.type.toUpperCase()}
+                    </Text>
+                  </View>
+                  <Text style={styles.cardStatus}>{String(item.status).toUpperCase()}</Text>
                 </View>
 
-                {/* TITLE */}
                 <Text style={styles.itemTitle}>{item.title}</Text>
-
-                {/* DESCRIPTION */}
-                <Text style={styles.description}>
-                  {item.description || 'No description'}
+                <Text style={styles.description} numberOfLines={2}>
+                  {item.description || 'No description provided.'}
                 </Text>
 
-                {/* LOCATION */}
-                <Text style={styles.metaText}>
-                  📍 {item.location_name || 'Unknown location'}
-                </Text>
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaPill}>{item.location_name || 'Unknown place'}</Text>
+                  <Text style={styles.metaPill}>{item.category_name || 'No category'}</Text>
+                </View>
 
-                {/* CATEGORY */}
-                <Text style={styles.metaText}>
-                  🗂 {item.category_name || 'No category'}
-                </Text>
-
-                {/* EVENT DATE */}
-                <Text style={styles.metaText}>
-                  📅 Event: {getDateKey(item.date) || 'N/A'}
-                </Text>
-
-                {/* REPORTED DATE */}
-                <Text style={styles.metaText}>
-                  🕒 Reported: {getDateKey(item.created_at) || 'N/A'}
-                </Text>
-
+                {imageUrl ? <Image source={{ uri: imageUrl }} style={styles.cardImage} /> : null}
               </TouchableOpacity>
-            )}
-          />
+            );
+          })
         )}
       </View>
     </View>
@@ -195,80 +197,134 @@ export default function HomeCalendar() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#F8FAFC',
-    marginHorizontal: 16,
-    marginBottom: 20,
-    borderRadius: 22,
+    backgroundColor: '#ffffff',
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: '#dbe7f3',
     overflow: 'hidden',
-    paddingBottom: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
   },
-
   loadingContainer: {
     paddingVertical: 40,
     justifyContent: 'center',
     alignItems: 'center',
   },
-
-  resultContainer: {
-    padding: 14,
+  header: {
+    paddingHorizontal: 18,
+    paddingTop: 20,
+    paddingBottom: 12,
   },
-
+  eyebrow: {
+    color: '#2563eb',
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.7,
+  },
   title: {
-    fontSize: 21,
-    fontWeight: '700',
-    marginBottom: 12,
-    color: '#111827',
+    marginTop: 8,
+    color: '#10233f',
+    fontSize: 26,
+    lineHeight: 32,
+    fontWeight: '800',
   },
-
+  subtitle: {
+    marginTop: 8,
+    color: '#526175',
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  resultsWrap: {
+    padding: 18,
+    paddingTop: 14,
+  },
+  resultsTitle: {
+    color: '#10233f',
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 12,
+  },
   emptyText: {
-    color: '#6B7280',
-    fontSize: 15,
+    color: '#6b7b91',
+    fontSize: 14,
+    lineHeight: 21,
   },
-
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: '#f7fbff',
+    borderRadius: 20,
     padding: 14,
+    borderWidth: 1,
+    borderColor: '#e5edf6',
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
   },
-
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 10,
+  },
   badge: {
-    alignSelf: 'flex-start',
     borderRadius: 999,
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    marginBottom: 10,
+    paddingVertical: 5,
   },
-
+  badgeLost: {
+    backgroundColor: '#dbeafe',
+  },
+  badgeFound: {
+    backgroundColor: '#dcfce7',
+  },
   badgeText: {
-    fontWeight: '700',
-    fontSize: 12,
+    fontWeight: '800',
+    fontSize: 11,
   },
-
+  badgeTextLost: {
+    color: '#1d4ed8',
+  },
+  badgeTextFound: {
+    color: '#15803d',
+  },
+  cardStatus: {
+    color: '#6b7b91',
+    fontSize: 11,
+    fontWeight: '800',
+  },
   itemTitle: {
+    marginTop: 10,
     fontSize: 17,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 6,
+    fontWeight: '800',
+    color: '#10233f',
   },
-
   description: {
+    marginTop: 6,
+    color: '#526175',
     fontSize: 14,
-    color: '#4B5563',
-    lineHeight: 20,
+    lineHeight: 21,
   },
-
-  metaText: {
+  metaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+  },
+  metaPill: {
+    backgroundColor: '#eef4fb',
+    color: '#1e40af',
     fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
+    fontWeight: '700',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 999,
+  },
+  cardImage: {
+    width: '100%',
+    height: 160,
+    borderRadius: 16,
+    marginTop: 12,
+    backgroundColor: '#dbe7f3',
   },
 });

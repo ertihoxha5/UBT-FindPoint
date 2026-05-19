@@ -8,6 +8,7 @@ import authRoutes from "./routes/authRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import locationRoutes from "./routes/locationRoutes.js";
 import itemRoutes from "./routes/itemRoutes.js";
+import chatRoutes from "./routes/chatRoutes.js";
 
 dotenv.config();
 
@@ -21,13 +22,13 @@ void initDB();
 app.use(cors());
 app.use(express.json());
 
-// Serve static files from assets folder
 app.use("/assets", express.static(path.join(__dirname, "../assets")));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/locations", locationRoutes);
 app.use("/api/items", itemRoutes);
+app.use("/api/chat", chatRoutes);
 
 
 app.listen(process.env.PORT, () => {

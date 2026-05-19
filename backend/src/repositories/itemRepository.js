@@ -238,3 +238,49 @@ export const getItems = async ({ type = null, status = null, userId = null, limi
       : [],
   }));
 };
+
+export const updateOwnedItem = async (itemId, userId, payload) => {
+  const [result] = await db.query(
+    `UPDATE items
+     SET
+       title = ?,
+       description = ?,
+       type = ?,
+       category_id = ?,
+       location_id = ?,
+       date = ?,
+       reward = ?,
+       is_anonymous = ?
+     WHERE item_id = ? AND user_id = ?`,
+    [
+      payload.title,
+      payload.description || null,
+      payload.type,
+      payload.category_id,
+      payload.location_id,
+      payload.date || null,
+      payload.reward || null,
+      payload.is_anonymous ? 1 : 0,
+      itemId,
+      userId,
+    ]
+  );
+
+  return result.affectedRows > 0;
+};
+
+export const updateOwnedItemStatus = async (itemId, userId, { status, type = null }) => {
+  const [result] = await db.query(
+    `UPDATE items
+     SET status = ?, type = COALESCE(?, type)
+     WHERE item_id = ? AND user_id = ?`,
+    [status, type, itemId, userId]
+  );
+
+  return result.affectedRows > 0;
+};
+
+export const deleteOwnedItem = async (itemId, userId) => {
+  const [result] = await db.query("DELETE FROM items WHERE item_id = ? AND user_id = ?", [itemId, userId]);
+  return result.affectedRows > 0;
+};

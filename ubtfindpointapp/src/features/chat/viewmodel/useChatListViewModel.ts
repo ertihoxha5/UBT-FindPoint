@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { getConversations } from '../service/chatService';
 
-export function useChatListViewModel(userId: number) {
+export function useChatListViewModel() {
   const [chats, setChats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     try {
-      const res = await getConversations(userId);
+      const res = await getConversations();
       setChats(res.data);
     } catch (err) {
       console.log('Chat list error:', err);

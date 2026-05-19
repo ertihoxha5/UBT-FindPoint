@@ -57,6 +57,7 @@ export default function ItemFeedScreen({
     () => filterItems(items, query, selectedCategory, selectedLocation, selectedStatus),
     [items, query, selectedCategory, selectedLocation, selectedStatus]
   );
+  const activeFilterCount = [selectedCategory, selectedLocation, selectedStatus].filter((value) => value !== 'All').length;
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -71,6 +72,16 @@ export default function ItemFeedScreen({
               <Text style={[styles.heroEyebrow, { color: accent }]}>{highlight}</Text>
               <Text style={styles.heroTitle}>{title}</Text>
               <Text style={styles.heroSubtitle}>{subtitle}</Text>
+              <View style={styles.heroMetaRow}>
+                <View style={styles.heroMetaCard}>
+                  <Text style={styles.heroMetaValue}>{String(filteredItems.length)}</Text>
+                  <Text style={styles.heroMetaLabel}>Visible posts</Text>
+                </View>
+                <View style={styles.heroMetaCard}>
+                  <Text style={styles.heroMetaValue}>{String(activeFilterCount)}</Text>
+                  <Text style={styles.heroMetaLabel}>Active filters</Text>
+                </View>
+              </View>
             </View>
 
             <View style={styles.searchCard}>
@@ -104,6 +115,7 @@ export default function ItemFeedScreen({
                   pathname: '/home/details',
                   params: {
                     itemId: String(item.item_id),
+                    userId: String(item.user_id || ''),
                     title: item.title,
                     description: item.description || '',
                     status: String(item.status),
@@ -112,8 +124,12 @@ export default function ItemFeedScreen({
                     createdAt: item.created_at || '',
                     imageUrl,
                     category: item.category_name || '',
+                    categoryId: String(item.category_id),
                     location: item.location_name || '',
+                    locationId: String(item.location_id),
                     reward: item.reward || '',
+                    date: item.date ? String(item.date) : '',
+                    isAnonymous: item.is_anonymous ? 'true' : 'false',
                   },
                 })
               }
@@ -216,19 +232,24 @@ function Tag({ label, accent }: { label: string; accent: string }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#f4f8fc',
+    backgroundColor: '#edf4f8',
   },
   content: {
     paddingHorizontal: 16,
-    paddingBottom: 28,
+    paddingBottom: 108,
   },
   heroCard: {
     marginTop: 14,
     backgroundColor: '#ffffff',
-    borderRadius: 26,
+    borderRadius: 28,
     padding: 20,
     borderWidth: 1,
     borderColor: '#dbe7f3',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
   },
   heroEyebrow: {
     fontSize: 12,
@@ -248,13 +269,43 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: '#526175',
   },
+  heroMetaRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 16,
+  },
+  heroMetaCard: {
+    flex: 1,
+    backgroundColor: '#f7fbff',
+    borderRadius: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: '#e5edf6',
+  },
+  heroMetaValue: {
+    color: '#10233f',
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  heroMetaLabel: {
+    color: '#64748b',
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: '700',
+  },
   searchCard: {
     marginTop: 14,
     backgroundColor: '#ffffff',
-    borderRadius: 24,
+    borderRadius: 26,
     padding: 16,
     borderWidth: 1,
     borderColor: '#dbe7f3',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
   searchTitle: {
     fontSize: 18,
@@ -263,12 +314,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   searchInput: {
-    height: 52,
+    height: 56,
     borderWidth: 1,
     borderColor: '#dbe7f3',
-    borderRadius: 16,
+    borderRadius: 18,
     paddingHorizontal: 16,
-    backgroundColor: '#f8fbff',
+    backgroundColor: '#f7fbff',
     fontSize: 15,
     color: '#10233f',
   },
@@ -287,7 +338,7 @@ const styles = StyleSheet.create({
   },
   filterChip: {
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 11,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: '#dbe7f3',
@@ -309,10 +360,15 @@ const styles = StyleSheet.create({
   postCard: {
     marginTop: 14,
     backgroundColor: '#ffffff',
-    borderRadius: 22,
+    borderRadius: 24,
     padding: 16,
     borderWidth: 1,
     borderColor: '#dbe7f3',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 2,
   },
   postHeader: {
     flexDirection: 'row',
@@ -342,7 +398,7 @@ const styles = StyleSheet.create({
     color: '#6b7b91',
   },
   statusWrap: {
-    backgroundColor: '#f8fbff',
+    backgroundColor: '#f7fbff',
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -355,7 +411,7 @@ const styles = StyleSheet.create({
   },
   postTitle: {
     marginTop: 14,
-    fontSize: 20,
+    fontSize: 21,
     fontWeight: '800',
     color: '#10233f',
   },
@@ -372,7 +428,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   tag: {
-    backgroundColor: '#eef4fb',
+    backgroundColor: '#f2f7fc',
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -383,15 +439,15 @@ const styles = StyleSheet.create({
   },
   postImage: {
     width: '100%',
-    height: 230,
-    borderRadius: 18,
+    height: 220,
+    borderRadius: 20,
     marginTop: 14,
     backgroundColor: '#dbe7f3',
   },
   emptyCard: {
     marginTop: 16,
     backgroundColor: '#ffffff',
-    borderRadius: 22,
+    borderRadius: 24,
     padding: 20,
     borderWidth: 1,
     borderColor: '#dbe7f3',

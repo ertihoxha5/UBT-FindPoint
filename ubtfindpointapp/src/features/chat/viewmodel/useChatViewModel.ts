@@ -1,31 +1,30 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getMessages, sendMessage } from '../service/chatService';
 
-export function useChatViewModel(conversationId: number, userId: number) {
+export function useChatViewModel(conversationId: number) {
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState('');
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       const res = await getMessages(conversationId);
       setMessages(res.data);
     } catch (err) {
       console.log('Chat error:', err);
     }
-  };
+  }, [conversationId]);
 
   useEffect(() => {
     load();
     const interval = setInterval(load, 2000);
     return () => clearInterval(interval);
-  }, [conversationId]);
+  }, [load]);
 
   const send = async () => {
     if (!text.trim()) return;
 
     await sendMessage({
       conversation_id: conversationId,
-      sender_id: userId,
       message: text,
     });
 
