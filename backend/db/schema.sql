@@ -83,3 +83,19 @@ CREATE TABLE media (
 
 ALTER TABLE items 
 CHANGE found_date date Date;
+
+ /*Ketu jane tabelat e konversationit dhe mesazheve */
+CREATE TABLE conversations (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user1_id INT NOT NULL,
+  user2_id INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE messages (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  conversation_id INT NOT NULL,
+  sender_id INT NOT NULL,
+  message TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
