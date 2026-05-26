@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -11,14 +11,19 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Animated,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthViewModel } from '../viewmodel/AuthViewModel';
+import { Ionicons } from '@expo/vector-icons';
 
-const LOGO_SIZE = Math.min(Dimensions.get('window').width * 0.34, 150);
+const { width, height } = Dimensions.get('window');
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const LOGO_SIZE = Math.min(width * 0.45, 180);
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -26,11 +31,39 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [authError, setAuthError] = useState('');
+  
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
+
+  React.useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const handleLogin = async () => {
+    Keyboard.dismiss();
     const trimmedEmail = email.trim();
     const trimmedPassword = password.trim();
     let hasError = false;
@@ -52,9 +85,7 @@ export default function LoginScreen() {
       hasError = true;
     }
 
-    if (hasError) {
-      return;
-    }
+    if (hasError) return;
 
     setLoading(true);
 
@@ -80,221 +111,289 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" backgroundColor="#f4f8fc" translucent={false} />
-      <KeyboardAvoidingView style={styles.keyboardWrapper} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <View style={styles.hero}>
-            <View style={styles.logoShell}>
-              <View style={styles.glowOrb} />
-              <Image source={require('@/assets/images/fp.png')} resizeMode="contain" style={styles.logo} />
-            </View>
-            <Text style={styles.eyebrow}>Campus lost and found</Text>
-            <Text style={styles.title}>Welcome back</Text>
-            <Text style={styles.subtitle}>Sign in to manage posts, help others, and keep track of recent lost and found activity.</Text>
-            <View style={styles.heroStats}>
-              <View style={styles.heroStatChip}>
-                <Text style={styles.heroStatValue}>Fast</Text>
-                <Text style={styles.heroStatLabel}>reporting</Text>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="dark" backgroundColor="#f0f7ff" translucent={false} />
+        <KeyboardAvoidingView 
+          style={styles.keyboardWrapper} 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
+          <ScrollView 
+            contentContainerStyle={styles.scrollContent} 
+            keyboardShouldPersistTaps="handled" 
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+          >
+            <Animated.View 
+              style={[
+                styles.content,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }]
+                }
+              ]}
+            >
+              {/* Hero Section */}
+              <View style={styles.heroSection}>
+                <Animated.View style={[styles.logoContainer, { transform: [{ scale: scaleAnim }] }]}>
+                  <View style={styles.logoBackground}>
+                    <View style={styles.glowEffect} />
+                    <Image 
+                      source={require('@/assets/images/fp.png')} 
+                      resizeMode="contain" 
+                      style={styles.logo} 
+                    />
+                  </View>
+                </Animated.View>
+                
+                <Text style={styles.title}>Welcome Back</Text>
+                <Text style={styles.subtitle}>
+                  Sign in to manage posts, help others, and keep track of recent lost and found activity
+                </Text>
               </View>
-              <View style={styles.heroStatChip}>
-                <Text style={styles.heroStatValue}>Safe</Text>
-                <Text style={styles.heroStatLabel}>community</Text>
+
+              {/* Form Card */}
+              <View style={styles.formCard}>
+                {/* Email Input */}
+                <View style={styles.inputWrapper}>
+                  <View style={[styles.inputContainer, emailError && styles.inputContainerError]}>
+                    <Ionicons name="mail-outline" size={20} color="#4a90e2" style={styles.inputIcon} />
+                    <TextInput
+                      value={email}
+                      onChangeText={(value) => {
+                        setEmail(value);
+                        setEmailError('');
+                        setAuthError('');
+                      }}
+                      placeholder="Email"
+                      placeholderTextColor="#aaa"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      style={styles.input}
+                    />
+                  </View>
+                  {emailError && <Text style={styles.errorText}>{emailError}</Text>}
+                </View>
+
+                {/* Password Input */}
+                <View style={styles.inputWrapper}>
+                  <View style={[styles.inputContainer, passwordError && styles.inputContainerError]}>
+                    <Ionicons name="lock-closed-outline" size={20} color="#4a90e2" style={styles.inputIcon} />
+                    <TextInput
+                      value={password}
+                      onChangeText={(value) => {
+                        setPassword(value);
+                        setPasswordError('');
+                        setAuthError('');
+                      }}
+                      placeholder="Password"
+                      placeholderTextColor="#aaa"
+                      secureTextEntry={!showPassword}
+                      autoCapitalize="none"
+                      style={styles.input}
+                    />
+                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                      <Ionicons 
+                        name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                        size={20} 
+                        color="#aaa" 
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  {passwordError && <Text style={styles.errorText}>{passwordError}</Text>}
+                </View>
+
+                {/* Forgot Password */}
+                <TouchableOpacity style={styles.forgotPassword} onPress={() => router.push('/forgot-password')}>
+                  <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                </TouchableOpacity>
+
+                {/* Auth Error */}
+                {authError && (
+                  <View style={styles.authErrorContainer}>
+                    <Ionicons name="alert-circle" size={20} color="#e74c3c" />
+                    <Text style={styles.authErrorText}>{authError}</Text>
+                  </View>
+                )}
+
+                {/* Login Button */}
+                <TouchableOpacity 
+                  style={[styles.loginButton, loading && styles.loginButtonDisabled]} 
+                  onPress={handleLogin} 
+                  disabled={loading}
+                  activeOpacity={0.85}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#ffffff" />
+                  ) : (
+                    <Text style={styles.loginButtonText}>Login</Text>
+                  )}
+                </TouchableOpacity>
+
+                {/* Register Link */}
+                <View style={styles.registerRow}>
+                  <Text style={styles.registerText}>Don't have an account? </Text>
+                  <TouchableOpacity onPress={() => router.push('/register')} activeOpacity={0.7}>
+                    <Text style={styles.registerLink}>Register</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          </View>
-
-          <View style={styles.card}>
-            <TextInput
-              value={email}
-              onChangeText={(value) => {
-                setEmail(value);
-                setEmailError('');
-                setAuthError('');
-              }}
-              placeholder="Email"
-              placeholderTextColor="#94a3b8"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              style={[styles.input, emailError ? styles.inputError : null]}
-            />
-            {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
-
-            <TextInput
-              value={password}
-              onChangeText={(value) => {
-                setPassword(value);
-                setPasswordError('');
-                setAuthError('');
-              }}
-              placeholder="Password"
-              placeholderTextColor="#94a3b8"
-              secureTextEntry
-              autoCapitalize="none"
-              style={[styles.input, passwordError ? styles.inputError : null]}
-            />
-            {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
-            {authError ? <Text style={styles.errorText}>{authError}</Text> : null}
-
-            <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleLogin} disabled={loading} activeOpacity={0.88}>
-              {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.buttonText}>Login</Text>}
-            </TouchableOpacity>
-
-            <View style={styles.registerRow}>
-              <Text style={styles.registerText}>Don&apos;t have an account? </Text>
-              <TouchableOpacity onPress={() => router.push('/register')} activeOpacity={0.8}>
-                <Text style={styles.registerLink}>Register</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+            </Animated.View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </TouchableWithoutFeedback>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#eef4f8',
+    backgroundColor: '#f0f7ff',
   },
   keyboardWrapper: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
+    justifyContent: 'center',
+  },
+  content: {
     paddingHorizontal: 24,
-    paddingVertical: 28,
-    justifyContent: 'center',
+    paddingVertical: 40,
   },
-  hero: {
+  heroSection: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 40,
   },
-  logoShell: {
-    width: LOGO_SIZE + 32,
-    height: LOGO_SIZE + 32,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#d8e6f2',
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 8,
-    marginBottom: 18,
+  logoContainer: {
+    marginBottom: 32,
   },
-  glowOrb: {
-    position: 'absolute',
-    width: LOGO_SIZE + 90,
-    height: LOGO_SIZE + 90,
-    borderRadius: 999,
-    backgroundColor: '#dbeafe',
-    opacity: 0.55,
-  },
-  logo: {
+  logoBackground: {
     width: LOGO_SIZE,
     height: LOGO_SIZE,
+    borderRadius: LOGO_SIZE / 2,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#4a90e2',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+    position: 'relative',
   },
-  eyebrow: {
-    color: '#2563eb',
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+  glowEffect: {
+    position: 'absolute',
+    width: LOGO_SIZE + 20,
+    height: LOGO_SIZE + 20,
+    borderRadius: (LOGO_SIZE + 20) / 2,
+    backgroundColor: 'rgba(74, 144, 226, 0.1)',
+  },
+  logo: {
+    width: LOGO_SIZE * 0.7,
+    height: LOGO_SIZE * 0.7,
   },
   title: {
-    marginTop: 10,
     fontSize: 34,
-    fontWeight: '800',
-    color: '#10233f',
+    fontWeight: 'bold',
+    color: '#1a3a5c',
+    marginBottom: 12,
     textAlign: 'center',
   },
   subtitle: {
-    marginTop: 10,
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#526175',
+    fontSize: 14,
+    color: '#6c8db0',
     textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: 20,
   },
-  heroStats: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 16,
-  },
-  heroStatChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 999,
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#dbe7f3',
-    alignItems: 'center',
-    minWidth: 92,
-  },
-  heroStatValue: {
-    color: '#10233f',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  heroStatLabel: {
-    color: '#64748b',
-    fontSize: 11,
-    marginTop: 2,
-  },
-  card: {
+  formCard: {
     backgroundColor: '#ffffff',
     borderRadius: 28,
-    padding: 22,
-    borderWidth: 1,
-    borderColor: '#dbe7f3',
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.06,
+    padding: 24,
+    shadowColor: '#4a90e2',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
     shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
     elevation: 6,
   },
-  input: {
-    height: 56,
-    borderWidth: 1,
-    borderColor: '#dbe7f3',
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    backgroundColor: '#f7fbff',
-    marginBottom: 12,
-    fontSize: 15,
-    color: '#10233f',
+  inputWrapper: {
+    marginBottom: 20,
   },
-  inputError: {
-    borderColor: '#dc2626',
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    height: 56,
+    paddingHorizontal: 16,
+  },
+  inputContainerError: {
+    borderColor: '#e74c3c',
+    borderWidth: 1,
+  },
+  inputIcon: {
+    marginRight: 12,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1a3a5c',
+    paddingVertical: 12,
+  },
+  eyeIcon: {
+    padding: 4,
   },
   errorText: {
-    color: '#dc2626',
+    color: '#e74c3c',
     fontSize: 12,
-    marginTop: -6,
-    marginBottom: 10,
+    marginTop: 6,
+    marginLeft: 4,
   },
-  button: {
+  forgotPassword: {
+    alignSelf: 'flex-end',
+    marginBottom: 24,
+  },
+  forgotPasswordText: {
+    color: '#4a90e2',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  authErrorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 20,
+    gap: 8,
+  },
+  authErrorText: {
+    color: '#e74c3c',
+    fontSize: 13,
+    flex: 1,
+  },
+  loginButton: {
+    backgroundColor: '#4a90e2',
+    borderRadius: 16,
     height: 56,
-    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2563eb',
-    marginTop: 10,
-    shadowColor: '#1d4ed8',
+    shadowColor: '#4a90e2',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 8,
     elevation: 5,
   },
-  buttonDisabled: {
+  loginButtonDisabled: {
     opacity: 0.7,
   },
-  buttonText: {
+  loginButtonText: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '700',
@@ -303,14 +402,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 20,
   },
   registerText: {
-    color: '#526175',
+    color: '#6c8db0',
     fontSize: 14,
   },
   registerLink: {
-    color: '#2563eb',
+    color: '#4a90e2',
     fontSize: 14,
     fontWeight: '700',
   },

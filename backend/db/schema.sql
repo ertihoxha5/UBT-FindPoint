@@ -1,7 +1,5 @@
 -- Active: 1774977057822@@localhost@3306@findpoint_db
-CREATE DATABASE IF NOT EXISTS findpoint_db;
-
-
+-- CREATE DATABASE IF NOT EXISTS findpoint_db;
 USE findpoint_db;
 
 CREATE TABLE users (
@@ -131,3 +129,20 @@ CREATE TABLE admin_activity (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (admin_user_id) REFERENCES users(userId) ON DELETE CASCADE
 );
+
+CREATE TABLE notifications (
+  notification_id INT AUTO_INCREMENT PRIMARY KEY,
+  recipient_user_id INT NULL,
+  audience ENUM('user', 'admin') NOT NULL DEFAULT 'user',
+  type VARCHAR(80) NOT NULL,
+  title VARCHAR(160) NOT NULL,
+  message TEXT NOT NULL,
+  link VARCHAR(255) NULL,
+  metadata_json TEXT NULL,
+  is_read BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  read_at TIMESTAMP NULL,
+  FOREIGN KEY (recipient_user_id) REFERENCES users(userId) ON DELETE CASCADE
+);
+
+Select * from users;

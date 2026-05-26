@@ -288,7 +288,7 @@ export const updateOwnedItem = async (itemId, userId, payload) => {
 export const updateOwnedItemStatus = async (itemId, userId, { status, type = null }) => {
   const [result] = await db.query(
     `UPDATE items
-     SET status = ?, type = COALESCE(?, type)
+     SET status = ?, type = COALESCE(?, type), moderation_status = 'pending'
      WHERE item_id = ? AND user_id = ?`,
     [status, type, itemId, userId]
   );

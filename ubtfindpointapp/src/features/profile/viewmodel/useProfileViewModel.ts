@@ -17,7 +17,15 @@ export const useProfileViewModel = () => {
       setLoading(true);
       setError(null);
 
-      const [user, userPosts] = await Promise.all([auth.getCurrentUser(), fetchMyItems()]);
+      const user = await auth.getCurrentUser();
+
+      if (!user) {
+        setProfile(null);
+        setPosts([]);
+        return { user: null, userPosts: [] };
+      }
+
+      const userPosts = await fetchMyItems();
       setProfile(user);
       setPosts(userPosts);
       return { user, userPosts };

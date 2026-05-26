@@ -3,12 +3,14 @@ import {
   createItem,
   createItemWithFiles,
   deleteOwnedItem,
+  getItemById,
   getItems,
   itemsSupportUserId,
   updateOwnedItem,
   updateOwnedItemStatus,
 } from "../repositories/itemRepository.js";
 import fs from "fs";
+import { createAdminNotification, createNotification } from "../repositories/notificationRepository.js";
 import { getUserIdFromRequest, requireUserId } from "../utils/auth.js";
 
 export const addItem = async (req, res) => {
@@ -35,6 +37,21 @@ export const addItem = async (req, res) => {
     }
 
     const itemId = await createItem(payload);
+    await createNotification({
+      recipientUserId: userId,
+      type: "item_under_review",
+      title: "Your report is under review",
+      message: `${payload.title} was submitted and is waiting for admin approval.`,
+      link: "/profile",
+      metadata: { itemId, moderationStatus: "pending" },
+    });
+    await createAdminNotification({
+      type: "admin_item_review",
+      title: "New item waiting for review",
+      message: `${payload.title} was submitted and needs approval.`,
+      link: "/admin/items",
+      metadata: { itemId, submittedBy: userId },
+    });
     res.status(201).json({ message: "Item created", itemId });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -84,6 +101,21 @@ export const uploadItem = async (req, res) => {
     }
 
     const itemId = await createItemWithFiles(payload, mediaUrls);
+    await createNotification({
+      recipientUserId: userId,
+      type: "item_under_review",
+      title: "Your report is under review",
+      message: `${payload.title} was submitted and is waiting for admin approval.`,
+      link: "/profile",
+      metadata: { itemId, moderationStatus: "pending" },
+    });
+    await createAdminNotification({
+      type: "admin_item_review",
+      title: "New item waiting for review",
+      message: `${payload.title} was submitted and needs approval.`,
+      link: "/admin/items",
+      metadata: { itemId, submittedBy: userId },
+    });
     res.status(201).json({ message: "Item created with media", itemId });
   } catch (error) {
     // Clean up uploaded files on error
@@ -180,6 +212,22 @@ export const updateMyItem = async (req, res) => {
       return res.status(404).json({ error: "Report not found or not owned by this user." });
     }
 
+    await createNotification({
+      recipientUserId: userId,
+      type: "item_update_under_review",
+      title: "Your updated report is under review",
+      message: `${payload.title} was updated and is waiting for admin approval again.`,
+      link: "/profile",
+      metadata: { itemId, moderationStatus: "pending" },
+    });
+    await createAdminNotification({
+      type: "admin_item_review",
+      title: "Updated item waiting for review",
+      message: `${payload.title} was edited and needs approval.`,
+      link: "/admin/items",
+      metadata: { itemId, submittedBy: userId },
+    });
+
     res.json({ message: "Report updated" });
   } catch (error) {
     const statusCode = error.message === "Unauthorized" ? 401 : 400;
@@ -207,7 +255,25 @@ export const markMyItemFound = async (req, res) => {
       return res.status(404).json({ error: "Report not found or not owned by this user." });
     }
 
-    res.json({ message: "Report marked as found" });
+    const item = await getItemById(itemId);
+
+    await createNotification({
+      recipientUserId: userId,
+      type: "item_status_under_review",
+      title: "Your status change is under review",
+      message: `${item?.title || "This report"} was marked as found and is waiting for admin confirmation.`,
+      link: "/profile",
+      metadata: { itemId, moderationStatus: "pending", requestedStatus: "resolved" },
+    });
+    await createAdminNotification({
+      type: "admin_item_review",
+      title: "Status change waiting for review",
+      message: `${item?.title || "An item"} was marked as found and needs admin review.`,
+      link: "/admin/items",
+      metadata: { itemId, submittedBy: userId },
+    });
+
+    res.json({ message: "Report marked as found and sent for review" });
   } catch (error) {
     const statusCode = error.message === "Unauthorized" ? 401 : 400;
     res.status(statusCode).json({ error: error.message });
@@ -253,6 +319,24 @@ export const reportItem = async (req, res) => {
     }
 
     const reportId = await createItemReport({ itemId, reportedBy, reason, details });
+    const item = await getItemById(itemId);
+
+    await createNotification({
+      recipientUserId: reportedBy,
+      type: "report_under_review",
+      title: "Your report is under review",
+      message: `Your report for ${item?.title || "this item"} was sent to admins for review.`,
+      link: "/notifications",
+      metadata: { itemId, reportId },
+    });
+    await createAdminNotification({
+      type: "admin_report_review",
+      title: "New user report waiting for review",
+      message: `${item?.title || "An item"} was reported for "${reason}".`,
+      link: "/admin/reports",
+      metadata: { itemId, reportId, reportedBy },
+    });
+
     res.status(201).json({ message: "Item reported", reportId });
   } catch (error) {
     const statusCode = error.message === "Unauthorized" ? 401 : 400;

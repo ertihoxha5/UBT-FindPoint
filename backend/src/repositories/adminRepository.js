@@ -69,13 +69,51 @@ export const getDashboardStats = async () => {
      LIMIT 12`
   );
 
+  const [[notificationTotals]] = await db.query(
+    `SELECT
+      COUNT(*) AS totalAdminNotifications,
+      SUM(CASE WHEN is_read = 0 THEN 1 ELSE 0 END) AS unreadAdminNotifications
+     FROM notifications
+     WHERE audience = 'admin'`
+  );
+
   return {
     ...userTotals,
     ...itemTotals,
     ...reportTotals,
+    ...notificationTotals,
     itemsByDay,
     usersByDay,
     recentActivity,
+  };
+};
+
+export const getPublicDashboardStats = async () => {
+  const [[itemTotals]] = await db.query(
+    `SELECT
+      SUM(CASE WHEN moderation_status = 'approved' THEN 1 ELSE 0 END) AS totalItems,
+      SUM(CASE WHEN moderation_status = 'approved' AND type = 'lost' THEN 1 ELSE 0 END) AS totalLost,
+      SUM(CASE WHEN moderation_status = 'approved' AND type = 'found' THEN 1 ELSE 0 END) AS totalFound,
+      SUM(CASE WHEN moderation_status = 'approved' AND status = 'resolved' THEN 1 ELSE 0 END) AS resolvedItems
+     FROM items`
+  );
+
+  const [[userTotals]] = await db.query(
+    `SELECT
+      SUM(CASE WHEN isBlocked = 0 THEN 1 ELSE 0 END) AS activeUsers
+     FROM users`
+  );
+
+  const totalItems = Number(itemTotals?.totalItems || 0);
+  const resolvedItems = Number(itemTotals?.resolvedItems || 0);
+
+  return {
+    totalItems,
+    totalLost: Number(itemTotals?.totalLost || 0),
+    totalFound: Number(itemTotals?.totalFound || 0),
+    resolvedItems,
+    activeUsers: Number(userTotals?.activeUsers || 0),
+    recoveryRate: totalItems > 0 ? Math.round((resolvedItems / totalItems) * 100) : 0,
   };
 };
 

@@ -9,6 +9,7 @@ import {
   getAdminItems,
   getAdminReports,
   getAdminUsers,
+  moderateAdminItem,
   reviewAdminReport,
   toggleAdminUserBlock,
   updateAdminItem,
@@ -32,6 +33,7 @@ router.get("/items", getAdminItems);
 router.get("/items/:itemId", getAdminItemDetails);
 router.put("/items/:itemId", updateAdminItem);
 router.patch("/items/:itemId/approve", approveAdminItem);
+router.patch("/items/:itemId/moderate", moderateAdminItem);
 router.delete("/items/:itemId", deleteAdminItem);
 
 router.get("/reports", getAdminReports);

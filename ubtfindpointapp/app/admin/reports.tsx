@@ -31,6 +31,19 @@ export default function AdminReportsScreen() {
       title="Reported Items"
       subtitle="Review report reasons, clear false positives, or remove harmful content quickly."
       activeRoute="/admin/reports">
+      <View style={adminStyles.card}>
+        <Text style={adminStyles.cardTitle}>Escalation queue</Text>
+        <Text style={adminStyles.cardSubtitle}>Review the context, decide whether the report is valid, and remove unsafe content when necessary.</Text>
+        <View style={adminStyles.badgeRow}>
+          <View style={adminStyles.badge}>
+            <Text style={adminStyles.badgeText}>Open reports: {reports.length}</Text>
+          </View>
+          <View style={adminStyles.badge}>
+            <Text style={adminStyles.badgeText}>Pending: {reports.filter((report) => report.status === 'pending').length}</Text>
+          </View>
+        </View>
+      </View>
+
       {loading ? (
         <View style={[adminStyles.card, { alignItems: 'center', paddingVertical: 30 }]}>
           <ActivityIndicator size="large" color="#2563eb" />
@@ -38,13 +51,16 @@ export default function AdminReportsScreen() {
       ) : reports.length ? (
         reports.map((report) => (
           <View key={report.report_id} style={adminStyles.card}>
-            <Text style={styles.reportTitle}>#{report.report_id} • {report.item_title || 'Unknown item'}</Text>
-            <Text style={styles.reportMeta}>
-              Reason: {report.reason} • Status: {String(report.status).toUpperCase()}
-            </Text>
-            <Text style={styles.reportMeta}>
-              Reporter: {report.reported_by_name || 'Unknown'} • Owner: {report.owner_name || 'Unknown'}
-            </Text>
+            <View style={styles.headerRow}>
+              <Text style={styles.reportTitle}>#{report.report_id} | {report.item_title || 'Unknown item'}</Text>
+              <View style={[styles.statusPill, report.status === 'pending' ? styles.pendingPill : styles.closedPill]}>
+                <Text style={report.status === 'pending' ? styles.pendingPillText : styles.closedPillText}>
+                  {String(report.status).toUpperCase()}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.reportMeta}>Reason: {report.reason}</Text>
+            <Text style={styles.reportMeta}>Reporter: {report.reported_by_name || 'Unknown'} | Owner: {report.owner_name || 'Unknown'}</Text>
             {report.details ? <Text style={styles.reportBody}>{report.details}</Text> : null}
             <View style={styles.actionRow}>
               <TouchableOpacity
@@ -107,15 +123,43 @@ export default function AdminReportsScreen() {
 }
 
 const styles = StyleSheet.create({
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+  },
+  statusPill: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  pendingPill: {
+    backgroundColor: '#fff7ed',
+  },
+  pendingPillText: {
+    color: '#b45309',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  closedPill: {
+    backgroundColor: '#eef4fb',
+  },
+  closedPillText: {
+    color: '#1d4ed8',
+    fontSize: 11,
+    fontWeight: '800',
+  },
   reportTitle: {
     color: '#10233f',
     fontSize: 17,
     fontWeight: '800',
+    flex: 1,
   },
   reportMeta: {
     color: '#64748b',
     fontSize: 12,
-    marginTop: 4,
+    marginTop: 6,
   },
   reportBody: {
     color: '#334155',

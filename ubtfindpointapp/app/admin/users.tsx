@@ -36,7 +36,19 @@ export default function AdminUsersScreen() {
       subtitle="Search, edit, block, and remove accounts with admin-level controls."
       activeRoute="/admin/users">
       <View style={[adminStyles.card, { gap: 12 }]}>
-        <Text style={adminStyles.cardTitle}>Search users</Text>
+        <Text style={adminStyles.cardTitle}>People overview</Text>
+        <Text style={adminStyles.cardSubtitle}>Review account health, update user details, and intervene when suspicious activity appears.</Text>
+        <View style={adminStyles.badgeRow}>
+          <View style={adminStyles.badge}>
+            <Text style={adminStyles.badgeText}>Loaded: {users.length}</Text>
+          </View>
+          <View style={adminStyles.badge}>
+            <Text style={adminStyles.badgeText}>Blocked: {users.filter((user) => user.isBlocked).length}</Text>
+          </View>
+          <View style={adminStyles.badge}>
+            <Text style={adminStyles.badgeText}>Admins: {users.filter((user) => user.role === 'admin').length}</Text>
+          </View>
+        </View>
         <TextInput value={search} onChangeText={setSearch} placeholder="Search by name or email" placeholderTextColor="#94a3b8" style={adminStyles.input} />
         <TouchableOpacity style={adminStyles.button} onPress={loadUsers} activeOpacity={0.88}>
           <Text style={adminStyles.buttonText}>Refresh users</Text>
@@ -50,11 +62,24 @@ export default function AdminUsersScreen() {
       ) : (
         users.map((user) => (
           <View key={user.userId} style={adminStyles.card}>
-            <Text style={styles.userName}>{user.fullName}</Text>
-            <Text style={styles.userMeta}>{user.email}</Text>
-            <Text style={styles.userMeta}>
-              {user.role.toUpperCase()} • {user.isBlocked ? 'Blocked' : 'Active'} • {user.itemCount} posts
-            </Text>
+            <View style={styles.headerRow}>
+              <View style={styles.identityWrap}>
+                <Text style={styles.userName}>{user.fullName}</Text>
+                <Text style={styles.userMeta}>{user.email}</Text>
+              </View>
+              <View style={styles.metaPillRow}>
+                <View style={[styles.metaPill, styles.rolePill]}>
+                  <Text style={styles.rolePillText}>{String(user.role).toUpperCase()}</Text>
+                </View>
+                <View style={[styles.metaPill, user.isBlocked ? styles.blockedPill : styles.activePill]}>
+                  <Text style={user.isBlocked ? styles.blockedPillText : styles.activePillText}>
+                    {user.isBlocked ? 'BLOCKED' : 'ACTIVE'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+            <Text style={styles.userMeta}>Faculty: {user.faculty || 'Not set'} | Phone: {user.phoneNumber || 'Not set'}</Text>
+            <Text style={styles.userMeta}>Posts: {user.itemCount || 0}</Text>
             <View style={styles.actionRow}>
               <TouchableOpacity style={adminStyles.secondaryButton} onPress={() => setEditingUser({ ...user })} activeOpacity={0.88}>
                 <Text style={adminStyles.secondaryButtonText}>Edit</Text>
@@ -95,6 +120,7 @@ export default function AdminUsersScreen() {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={adminStyles.cardTitle}>Edit user</Text>
+            <Text style={adminStyles.cardSubtitle}>Update profile details and adjust account privileges when needed.</Text>
             <TextInput style={adminStyles.input} value={editingUser?.fullName || ''} onChangeText={(value) => setEditingUser((current: any) => ({ ...current, fullName: value }))} placeholder="Full name" />
             <TextInput style={adminStyles.input} value={editingUser?.email || ''} onChangeText={(value) => setEditingUser((current: any) => ({ ...current, email: value }))} placeholder="Email" />
             <TextInput style={adminStyles.input} value={editingUser?.faculty || ''} onChangeText={(value) => setEditingUser((current: any) => ({ ...current, faculty: value }))} placeholder="Faculty" />
@@ -121,6 +147,49 @@ export default function AdminUsersScreen() {
 }
 
 const styles = StyleSheet.create({
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  identityWrap: {
+    flex: 1,
+  },
+  metaPillRow: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  metaPill: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  rolePill: {
+    backgroundColor: '#eef4fb',
+  },
+  rolePillText: {
+    color: '#1d4ed8',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  activePill: {
+    backgroundColor: '#ecfdf5',
+  },
+  activePillText: {
+    color: '#15803d',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  blockedPill: {
+    backgroundColor: '#fff1f2',
+  },
+  blockedPillText: {
+    color: '#dc2626',
+    fontSize: 11,
+    fontWeight: '800',
+  },
   userName: {
     color: '#10233f',
     fontSize: 17,

@@ -10,6 +10,8 @@ import categoryRoutes from "./routes/categoryRoutes.js";
 import locationRoutes from "./routes/locationRoutes.js";
 import itemRoutes from "./routes/itemRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
 
 dotenv.config();
 
@@ -31,6 +33,8 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/locations", locationRoutes);
 app.use("/api/items", itemRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 
 app.listen(process.env.PORT, () => {

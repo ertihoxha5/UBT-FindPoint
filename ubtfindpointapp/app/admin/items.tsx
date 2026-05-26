@@ -36,7 +36,16 @@ export default function AdminItemsScreen() {
       subtitle="Approve new submissions, inspect details, update records, and remove problematic items."
       activeRoute="/admin/items">
       <View style={[adminStyles.card, { gap: 12 }]}>
-        <Text style={adminStyles.cardTitle}>Search items</Text>
+        <Text style={adminStyles.cardTitle}>Review queue</Text>
+        <Text style={adminStyles.cardSubtitle}>Search by title or owner, monitor pending approvals, and act on moderation issues quickly.</Text>
+        <View style={adminStyles.badgeRow}>
+          <View style={adminStyles.badge}>
+            <Text style={adminStyles.badgeText}>Loaded: {items.length}</Text>
+          </View>
+          <View style={adminStyles.badge}>
+            <Text style={adminStyles.badgeText}>Pending: {items.filter((item) => item.moderation_status === 'pending').length}</Text>
+          </View>
+        </View>
         <TextInput value={search} onChangeText={setSearch} placeholder="Search by item title or owner" placeholderTextColor="#94a3b8" style={adminStyles.input} />
         <TouchableOpacity style={adminStyles.button} onPress={loadItems} activeOpacity={0.88}>
           <Text style={adminStyles.buttonText}>Refresh items</Text>
@@ -50,11 +59,22 @@ export default function AdminItemsScreen() {
       ) : (
         items.map((item) => (
           <View key={item.item_id} style={adminStyles.card}>
+            <View style={styles.headerRow}>
+              <View style={styles.metaPillRow}>
+                <View style={[styles.metaPill, styles.typePill]}>
+                  <Text style={styles.typePillText}>{String(item.type).toUpperCase()}</Text>
+                </View>
+                <View style={[styles.metaPill, item.moderation_status === 'pending' ? styles.pendingPill : styles.approvedPill]}>
+                  <Text style={item.moderation_status === 'pending' ? styles.pendingPillText : styles.approvedPillText}>
+                    {String(item.moderation_status || 'approved').toUpperCase()}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.reportCount}>{item.report_count || 0} reports</Text>
+            </View>
             <Text style={styles.itemTitle}>{item.title}</Text>
-            <Text style={styles.itemMeta}>
-              {item.type.toUpperCase()} • {String(item.moderation_status || 'approved').toUpperCase()} • {item.report_count || 0} pending reports
-            </Text>
-            <Text style={styles.itemMeta}>{item.fullName || 'Unknown owner'} • {item.category_name || 'No category'}</Text>
+            <Text style={styles.itemMeta}>Owner: {item.fullName || 'Unknown owner'}</Text>
+            <Text style={styles.itemMeta}>Category: {item.category_name || 'No category'} | Location: {item.location_name || 'Unknown'}</Text>
             <Text style={styles.itemBody} numberOfLines={3}>
               {item.description || 'No description provided.'}
             </Text>
@@ -98,6 +118,7 @@ export default function AdminItemsScreen() {
         <View style={styles.modalBackdrop}>
           <ScrollView style={styles.modalCard} contentContainerStyle={{ paddingBottom: 8 }}>
             <Text style={adminStyles.cardTitle}>Edit item</Text>
+            <Text style={adminStyles.cardSubtitle}>Update the record and save your moderation changes.</Text>
             <TextInput style={adminStyles.input} value={editingItem?.title || ''} onChangeText={(value) => setEditingItem((current: any) => ({ ...current, title: value }))} placeholder="Title" />
             <TextInput style={[adminStyles.input, { height: 110, textAlignVertical: 'top', paddingTop: 14 }]} multiline value={editingItem?.description || ''} onChangeText={(value) => setEditingItem((current: any) => ({ ...current, description: value }))} placeholder="Description" />
             <TextInput style={adminStyles.input} value={editingItem?.type || ''} onChangeText={(value) => setEditingItem((current: any) => ({ ...current, type: value }))} placeholder="Type" />
@@ -122,6 +143,52 @@ export default function AdminItemsScreen() {
 }
 
 const styles = StyleSheet.create({
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 10,
+  },
+  metaPillRow: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  metaPill: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  typePill: {
+    backgroundColor: '#eef4fb',
+  },
+  typePillText: {
+    color: '#1d4ed8',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  pendingPill: {
+    backgroundColor: '#fff7ed',
+  },
+  pendingPillText: {
+    color: '#b45309',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  approvedPill: {
+    backgroundColor: '#ecfdf5',
+  },
+  approvedPillText: {
+    color: '#15803d',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  reportCount: {
+    color: '#64748b',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   itemTitle: {
     color: '#10233f',
     fontSize: 17,

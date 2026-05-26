@@ -113,6 +113,23 @@ export const initDB = async () => {
       )
     `);
 
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS notifications (
+        notification_id INT AUTO_INCREMENT PRIMARY KEY,
+        recipient_user_id INT NULL,
+        audience ENUM('user', 'admin') NOT NULL DEFAULT 'user',
+        type VARCHAR(80) NOT NULL,
+        title VARCHAR(160) NOT NULL,
+        message TEXT NOT NULL,
+        link VARCHAR(255) NULL,
+        metadata_json TEXT NULL,
+        is_read BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        read_at TIMESTAMP NULL,
+        FOREIGN KEY (recipient_user_id) REFERENCES users(userId) ON DELETE CASCADE
+      )
+    `);
+
     if (await hasTable("users") && !(await hasColumn("users", "isBlocked"))) {
       await db.query("ALTER TABLE users ADD COLUMN isBlocked BOOLEAN NOT NULL DEFAULT FALSE AFTER isActive");
     }

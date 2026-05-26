@@ -5,8 +5,10 @@ import {
   logAdminActivity,
   reviewReportByAdmin,
 } from "../repositories/adminRepository.js";
+import { createNotification } from "../repositories/notificationRepository.js";
 import {
   deleteItemByAdmin,
+  getItemById,
   listItemsForAdmin,
   setItemModerationStatus,
   updateItemByAdmin,
@@ -177,6 +179,19 @@ export const approveAdminItem = async (req, res) => {
   try {
     const itemId = Number(req.params.itemId);
     await setItemModerationStatus(itemId, "approved");
+    const item = await getItemById(itemId);
+
+    if (item?.user_id) {
+      await createNotification({
+        recipientUserId: item.user_id,
+        type: "item_approved",
+        title: "Your report was approved",
+        message: `${item.title} is now visible to other users.`,
+        link: "/profile",
+        metadata: { itemId },
+      });
+    }
+
     await logAdminActivity({
       adminUserId: req.adminUser.userId,
       actionType: "approved",
@@ -184,6 +199,41 @@ export const approveAdminItem = async (req, res) => {
       targetId: itemId,
     });
     res.json({ message: "Item approved" });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+export const moderateAdminItem = async (req, res) => {
+  try {
+    const itemId = Number(req.params.itemId);
+    const moderationStatus = req.body.status === "approved" ? "approved" : "rejected";
+
+    await setItemModerationStatus(itemId, moderationStatus);
+
+    const item = await getItemById(itemId);
+    if (item?.user_id) {
+      await createNotification({
+        recipientUserId: item.user_id,
+        type: moderationStatus === "approved" ? "item_approved" : "item_rejected",
+        title: moderationStatus === "approved" ? "Your report was approved" : "Your report was rejected",
+        message:
+          moderationStatus === "approved"
+            ? `${item.title} is now visible to other users.`
+            : `${item.title} needs changes before it can be published again.`,
+        link: "/profile",
+        metadata: { itemId, moderationStatus },
+      });
+    }
+
+    await logAdminActivity({
+      adminUserId: req.adminUser.userId,
+      actionType: moderationStatus,
+      actionTarget: "item",
+      targetId: itemId,
+    });
+
+    res.json({ message: `Item ${moderationStatus}` });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -231,6 +281,7 @@ export const reviewAdminReport = async (req, res) => {
       actionTarget: "report",
       targetId: reportId,
     });
+
     res.json({ message: "Report updated" });
   } catch (error) {
     res.status(400).json({ error: error.message });

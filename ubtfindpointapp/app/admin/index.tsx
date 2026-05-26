@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import AdminShell, { adminStyles } from '@/src/features/admin/components/AdminShell';
 import { getAdminDashboard, openAdminDashboardPdf } from '@/src/features/admin/service/adminService';
 import { useAuthViewModel } from '@/src/features/auth/viewmodel/AuthViewModel';
@@ -52,16 +53,33 @@ export default function AdminDashboardScreen() {
       ) : (
         <>
           <View style={styles.statsGrid}>
-            <StatCard label="Total users" value={dashboard?.totalUsers} />
-            <StatCard label="Total items" value={dashboard?.totalItems} />
-            <StatCard label="Approved items" value={dashboard?.approvedItems} />
-            <StatCard label="Pending items" value={dashboard?.pendingItems} />
-            <StatCard label="Reported items" value={dashboard?.totalReports} />
-            <StatCard label="Blocked users" value={dashboard?.blockedUsers} />
+            <StatCard label="Total users" value={dashboard?.totalUsers} icon="people-outline" tint="#2563eb" />
+            <StatCard label="Total items" value={dashboard?.totalItems} icon="cube-outline" tint="#0f766e" />
+            <StatCard label="Approved items" value={dashboard?.approvedItems} icon="checkmark-circle-outline" tint="#16a34a" />
+            <StatCard label="Pending items" value={dashboard?.pendingItems} icon="time-outline" tint="#d97706" />
+            <StatCard label="Reported items" value={dashboard?.totalReports} icon="flag-outline" tint="#dc2626" />
+            <StatCard label="Blocked users" value={dashboard?.blockedUsers} icon="ban-outline" tint="#7c3aed" />
+          </View>
+
+          <View style={adminStyles.card}>
+            <Text style={adminStyles.cardTitle}>Operations snapshot</Text>
+            <Text style={adminStyles.cardSubtitle}>Use these numbers to spot review queues and potential moderation bottlenecks.</Text>
+            <View style={adminStyles.badgeRow}>
+              <View style={adminStyles.badge}>
+                <Text style={adminStyles.badgeText}>Pending reports: {dashboard?.pendingReports ?? 0}</Text>
+              </View>
+              <View style={adminStyles.badge}>
+                <Text style={adminStyles.badgeText}>Open items: {dashboard?.openItems ?? 0}</Text>
+              </View>
+              <View style={adminStyles.badge}>
+                <Text style={adminStyles.badgeText}>Unread admin notifications: {dashboard?.unreadAdminNotifications ?? 0}</Text>
+              </View>
+            </View>
           </View>
 
           <View style={adminStyles.card}>
             <Text style={adminStyles.cardTitle}>Activity trend</Text>
+            <Text style={adminStyles.cardSubtitle}>A rolling view of new items and signups over the last 7 days.</Text>
             {(dashboard?.itemsByDay || []).map((entry: any) => (
               <BarRow key={`items-${entry.bucket}`} label={`Items ${entry.bucket}`} value={entry.total} color="#2563eb" />
             ))}
@@ -94,9 +112,12 @@ export default function AdminDashboardScreen() {
   );
 }
 
-function StatCard({ label, value }: { label: string; value: number }) {
+function StatCard({ label, value, icon, tint }: { label: string; value: number; icon: keyof typeof Ionicons.glyphMap; tint: string }) {
   return (
     <View style={styles.statCard}>
+      <View style={[styles.statIconWrap, { backgroundColor: `${tint}18` }]}>
+        <Ionicons name={icon} size={20} color={tint} />
+      </View>
       <Text style={styles.statValue}>{value ?? 0}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
@@ -154,6 +175,13 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#dbe7f3',
+  },
+  statIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   statValue: {
     color: '#10233f',
