@@ -2,7 +2,6 @@ import { useCallback, useMemo, useState, useEffect } from "react";
 import api from "../../../services/api";
 import { clearStoredToken, getStoredToken, storeToken } from "../../../services/session";
 
-// Define types
 interface User {
   id: number;
   email: string;
@@ -32,7 +31,6 @@ export const useAuthViewModel = () => {
     }
   }, []);
 
-  // Load user on mount if session exists
   useEffect(() => {
     const loadUser = async (): Promise<void> => {
       const hasSession = await getStoredToken();

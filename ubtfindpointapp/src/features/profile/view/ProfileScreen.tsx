@@ -133,7 +133,6 @@ export default function ProfileScreen() {
       ? { uri: getAssetUrl(profile.profilePictureUrl) }
       : null;
 
-  // Get displayed posts (first 3 or all based on showAllPosts)
   const displayedPosts = showAllPosts ? posts : posts.slice(0, 3);
   const hasMorePosts = posts.length > 3;
 
@@ -272,7 +271,6 @@ export default function ProfileScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => handleLoad(true)} tintColor="#4a90e2" />}
         ListHeaderComponent={
           <View>
-            {/* Hero Section */}
             <LinearGradient
               colors={['#1a3a5c', '#10233f']}
               style={styles.heroCard}
@@ -304,7 +302,6 @@ export default function ProfileScreen() {
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
             </LinearGradient>
 
-            {/* Stats Row */}
             <View style={styles.statsRow}>
               {stats.map((stat) => (
                 <View key={stat.label} style={styles.statCard}>
@@ -315,7 +312,6 @@ export default function ProfileScreen() {
               ))}
             </View>
 
-            {/* Profile Information */}
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
                 <Ionicons name="person-outline" size={22} color="#4a90e2" />
@@ -340,7 +336,6 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* My Posts Section Header */}
             <View style={styles.postsHeader}>
               <View style={styles.sectionHeaderRow}>
                 <Ionicons name="document-text-outline" size={22} color="#4a90e2" />

@@ -1,4 +1,3 @@
-// src/features/notifications/view/NotificationScreen.tsx
 import React from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';

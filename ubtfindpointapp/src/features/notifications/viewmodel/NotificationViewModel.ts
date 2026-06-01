@@ -52,7 +52,7 @@ export function useNotificationViewModel() {
       setUnreadCount(0);
     } catch (error) {
       console.error('Failed to mark all as read:', error);
-      throw error; // Let UI handle alert
+      throw error; 
     } finally {
       setMarkingAllRead(false);
     }

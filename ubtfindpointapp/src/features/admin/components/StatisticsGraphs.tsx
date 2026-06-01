@@ -23,14 +23,12 @@ export function StatisticsGraphs({
 }: StatisticsGraphsProps) {
   const isDark = useColorScheme() === 'dark';
 
-  // Calculate percentages for pie chart
   const itemsApprovedPercent = totalItems > 0 ? (approvedItems / totalItems) * 100 : 0;
   const itemsPendingPercent = totalItems > 0 ? (pendingItems / totalItems) * 100 : 0;
   const activeUsersPercent = totalUsers > 0 ? ((totalUsers - blockedUsers) / totalUsers) * 100 : 0;
 
   return (
     <View style={[styles.container, isDark && styles.containerDark]}>
-      {/* Items Status Pie Chart */}
       <View style={[styles.chartCard, isDark && styles.chartCardDark]}>
         <Text style={[styles.chartTitle, isDark && styles.chartTitleDark]}>Item Status Distribution</Text>
         <View style={styles.pieSvgContainer}>
@@ -62,7 +60,6 @@ export function StatisticsGraphs({
         </View>
       </View>
 
-      {/* Users Status Pie Chart */}
       <View style={[styles.chartCard, isDark && styles.chartCardDark]}>
         <Text style={[styles.chartTitle, isDark && styles.chartTitleDark]}>User Status Distribution</Text>
         <View style={styles.pieSvgContainer}>

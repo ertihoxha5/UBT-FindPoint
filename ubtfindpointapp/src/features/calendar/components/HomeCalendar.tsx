@@ -140,7 +140,6 @@ export default function HomeCalendar() {
         </Text>
       </LinearGradient>
 
-      {/* Calendar */}
       <View style={styles.calendarWrapper}>
         <Calendar
           markedDates={markedDates}
@@ -153,7 +152,6 @@ export default function HomeCalendar() {
         />
       </View>
 
-      {/* Legend */}
       <View style={styles.legend}>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: '#ff6b6b' }]} />
@@ -165,7 +163,6 @@ export default function HomeCalendar() {
         </View>
       </View>
 
-      {/* Results Section */}
       <View style={styles.resultsWrap}>
         {selectedDate ? (
           <>

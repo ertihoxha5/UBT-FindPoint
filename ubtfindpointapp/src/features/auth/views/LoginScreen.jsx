@@ -134,7 +134,6 @@ export default function LoginScreen() {
                 }
               ]}
             >
-              {/* Hero Section */}
               <View style={styles.heroSection}>
                 <Animated.View style={[styles.logoContainer, { transform: [{ scale: scaleAnim }] }]}>
                   <View style={styles.logoBackground}>
@@ -177,7 +176,6 @@ export default function LoginScreen() {
                   {emailError && <Text style={styles.errorText}>{emailError}</Text>}
                 </View>
 
-                {/* Password Input */}
                 <View style={styles.inputWrapper}>
                   <View style={[styles.inputContainer, passwordError && styles.inputContainerError]}>
                     <Ionicons name="lock-closed-outline" size={20} color="#4a90e2" style={styles.inputIcon} />
@@ -205,12 +203,10 @@ export default function LoginScreen() {
                   {passwordError && <Text style={styles.errorText}>{passwordError}</Text>}
                 </View>
 
-                {/* Forgot Password */}
                 <TouchableOpacity style={styles.forgotPassword} onPress={() => router.push('/forgot-password')}>
                   <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
                 </TouchableOpacity>
 
-                {/* Auth Error */}
                 {authError && (
                   <View style={styles.authErrorContainer}>
                     <Ionicons name="alert-circle" size={20} color="#e74c3c" />
@@ -218,7 +214,6 @@ export default function LoginScreen() {
                   </View>
                 )}
 
-                {/* Login Button */}
                 <TouchableOpacity 
                   style={[styles.loginButton, loading && styles.loginButtonDisabled]} 
                   onPress={handleLogin} 
@@ -232,7 +227,6 @@ export default function LoginScreen() {
                   )}
                 </TouchableOpacity>
 
-                {/* Register Link */}
                 <View style={styles.registerRow}>
                   <Text style={styles.registerText}>Don't have an account? </Text>
                   <TouchableOpacity onPress={() => router.push('/register')} activeOpacity={0.7}>

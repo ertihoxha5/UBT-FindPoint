@@ -3,25 +3,21 @@ import { AdminRepository } from '../model/AdminRepository';
 import { IAdminItem, IAdminReport, IAdminStats } from '../model/AdminModel';
 
 export interface IAdminViewModel {
-  // Dashboard
   stats: IAdminStats | null;
   statsLoading: boolean;
   loadDashboard: () => Promise<void>;
 
-  // Items
   items: IAdminItem[];
   itemsLoading: boolean;
   itemsError: string | null;
   getItems: (filters?: { search?: string; moderationStatus?: string; type?: string }) => Promise<void>;
   moderateItem: (itemId: number, status: 'approved' | 'rejected') => Promise<void>;
 
-  // Reports
   reports: IAdminReport[];
   reportsLoading: boolean;
   getReports: (status?: string) => Promise<void>;
   reviewReport: (reportId: number, status: 'approved' | 'dismissed') => Promise<void>;
 
-  // General
   error: string | null;
   refresh: () => Promise<void>;
 }
@@ -72,7 +68,6 @@ export const useAdminViewModel = (): IAdminViewModel => {
   const moderateItem = useCallback(async (itemId: number, status: 'approved' | 'rejected') => {
     try {
       await AdminRepository.moderateItem(itemId, status);
-      // Update local state
       setItems((prev) =>
         prev.map((item) =>
           item.item_id === itemId
@@ -107,7 +102,6 @@ export const useAdminViewModel = (): IAdminViewModel => {
   const reviewReport = useCallback(async (reportId: number, status: 'approved' | 'dismissed') => {
     try {
       await AdminRepository.reviewReport(reportId, status);
-      // Update local state
       setReports((prev) =>
         prev.map((report) =>
           report.report_id === reportId

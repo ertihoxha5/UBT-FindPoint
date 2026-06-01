@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: '#f0f7ff',
-    paddingTop: 50, // Adjust this value as needed for status bar spacing
+    paddingTop: 50, 
   },
   content: {
     padding: 16,

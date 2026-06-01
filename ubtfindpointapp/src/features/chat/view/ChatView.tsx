@@ -47,14 +47,12 @@ export default function ChatView({ conversationId }: { conversationId: number })
         }
       });
 
-    // Animate entrance
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 500,
       useNativeDriver: true,
     }).start();
 
-    // Keyboard listeners
     const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
       setKeyboardVisible(true);
     });

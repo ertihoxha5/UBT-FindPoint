@@ -23,7 +23,6 @@ export default function CalendarScreen() {
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" backgroundColor="#f0f7ff" translucent={false} />
       
-      {/* Header */}
       <LinearGradient
         colors={['#ffffff', '#f8fafc']}
         style={styles.header}
@@ -35,7 +34,6 @@ export default function CalendarScreen() {
           </TouchableOpacity>
         </View>
         
-        {/* View Toggle */}
         <View style={styles.viewToggle}>
           <TouchableOpacity
             style={[styles.toggleButton, selectedView === 'calendar' && styles.toggleButtonActive]}
@@ -73,12 +71,10 @@ export default function CalendarScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
       >
-        {/* Calendar Component */}
         <View style={styles.calendarWrapper}>
           <HomeCalendar />
         </View>
 
-        {/* Upcoming Events Section */}
         <View style={styles.upcomingSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Upcoming Events</Text>
@@ -87,7 +83,6 @@ export default function CalendarScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Event Cards */}
           <View style={styles.eventCard}>
             <LinearGradient
               colors={['#4a90e2', '#357abd']}
@@ -152,7 +147,6 @@ export default function CalendarScreen() {
           </View>
         </View>
 
-        {/* Tips Section */}
         <View style={styles.tipsSection}>
           <LinearGradient
             colors={['rgba(74, 144, 226, 0.1)', 'rgba(74, 144, 226, 0.05)']}

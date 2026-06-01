@@ -286,7 +286,6 @@ export default function AddItemScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.card}>
-            {/* Header */}
             <LinearGradient
               colors={['#f8fafc', '#ffffff']}
               style={styles.headerGradient}
@@ -311,7 +310,6 @@ export default function AddItemScreen() {
               </Text>
             </LinearGradient>
 
-            {/* Type Selection */}
             <View style={styles.section}>
               <Text style={styles.label}>Item Type</Text>
               <View style={styles.segmentRow}>
@@ -334,7 +332,6 @@ export default function AddItemScreen() {
               </View>
             </View>
 
-            {/* Form Fields */}
             <View style={styles.section}>
               <Text style={styles.label}>Title *</Text>
               <View style={styles.inputWrapper}>
@@ -487,7 +484,6 @@ export default function AddItemScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Modals remain the same but with updated styling */}
       <Modal visible={datePickerVisible} transparent animationType="fade" onRequestClose={() => setDatePickerVisible(false)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>

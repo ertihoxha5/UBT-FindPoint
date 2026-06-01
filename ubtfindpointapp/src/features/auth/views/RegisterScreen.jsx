@@ -216,7 +216,6 @@ export default function RegisterScreen() {
                   {emailError && <Text style={styles.errorText}>{emailError}</Text>}
                 </View>
 
-                {/* Password Input */}
                 <View style={styles.inputWrapper}>
                   <View style={[styles.inputContainer, passwordError && styles.inputContainerError]}>
                     <Ionicons name="lock-closed-outline" size={20} color="#4a90e2" style={styles.inputIcon} />
@@ -243,7 +242,6 @@ export default function RegisterScreen() {
                   {passwordError && <Text style={styles.errorText}>{passwordError}</Text>}
                 </View>
 
-                {/* Confirm Password Input */}
                 <View style={styles.inputWrapper}>
                   <View style={[styles.inputContainer, confirmPasswordError && styles.inputContainerError]}>
                     <Ionicons name="lock-closed-outline" size={20} color="#4a90e2" style={styles.inputIcon} />
@@ -270,7 +268,6 @@ export default function RegisterScreen() {
                   {confirmPasswordError && <Text style={styles.errorText}>{confirmPasswordError}</Text>}
                 </View>
 
-                {/* Register Button */}
                 <TouchableOpacity 
                   style={[styles.registerButton, loading && styles.registerButtonDisabled]} 
                   onPress={handleRegister} 
@@ -284,7 +281,6 @@ export default function RegisterScreen() {
                   )}
                 </TouchableOpacity>
 
-                {/* Login Link */}
                 <View style={styles.loginRow}>
                   <Text style={styles.loginText}>Already have an account? </Text>
                   <TouchableOpacity onPress={() => router.replace('/login')} activeOpacity={0.7}>

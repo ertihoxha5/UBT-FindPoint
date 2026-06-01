@@ -30,7 +30,6 @@ const LOGO_SIZE = Math.min(width * 0.3, 120);
 const CARD_WIDTH = width * 0.75;
 type GradientPair = readonly [string, string];
 
-// Color palettes for items without images
 const COLOR_PALETTES = {
   lost: [
     ['#ff6b6b', '#ee5a52'],
@@ -58,7 +57,6 @@ const getRandomColor = (type: 'lost' | 'found'): GradientPair => {
   return palettes[randomIndex];
 };
 
-// Get first letter of title for placeholder
 const getTitleLetter = (title: string) => {
   return title.charAt(0).toUpperCase();
 };
@@ -940,7 +938,6 @@ const styles = StyleSheet.create({
   },
 });
 
-// Add this type definition at the top
 type Section = {
   id: string;
   title: string;

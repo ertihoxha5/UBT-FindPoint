@@ -48,7 +48,6 @@ const normalizeDashboardStats = (data: any): DashboardStats => {
   };
 };
 
-// Mock data for when backend is not ready
 const getMockDashboardStats = (): DashboardStats => {
   return {
     totalItems: 42,
@@ -96,13 +95,11 @@ export const fetchDashboardStats = async (): Promise<DashboardStats> => {
   } catch (error: any) {
     console.error('Failed to fetch dashboard stats:', error?.message);
     
-    // Return mock data if endpoint doesn't exist (404)
     if (error?.response?.status === 404) {
       console.log('Using mock dashboard stats (endpoint not ready)');
       return getMockDashboardStats();
     }
     
-    // Return default stats for other errors
     return {
       totalItems: 0,
       totalLost: 0,

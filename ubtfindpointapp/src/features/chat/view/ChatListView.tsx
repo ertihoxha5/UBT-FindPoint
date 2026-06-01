@@ -150,7 +150,6 @@ export default function ChatListView() {
     <SafeAreaView style={styles.screen}>
       <StatusBar style="dark" backgroundColor="#f0f7ff" translucent={false} />
       
-      {/* Header */}
       <LinearGradient
         colors={['#ffffff', '#f8fafc']}
         style={styles.header}
