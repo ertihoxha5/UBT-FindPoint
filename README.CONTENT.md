@@ -1543,3 +1543,6 @@ Total: **47 pyetje** të ndarë sipas kategorive
 ---
 
 **Suksese koleg**
+
+**Kete file me e fshi para ligjerates**
+**git rm README.CONTENT.md , git commit -m "Remove README.CONTENT.md" , git push origin main ** 
