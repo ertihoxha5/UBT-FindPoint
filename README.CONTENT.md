@@ -1539,8 +1539,7 @@ Total: **47 pyetje** të ndarë sipas kategorive
 
 **Sipas përmisimit:** Input validation, API docs, logging, testing, refresh tokens, HTTPS, rate limiting.
 
-**Per mbrojtje:** Jeni gati të përgjigni te arquitekturë, struktura, teknologjite, security at modulet. Demonstroni understading të flow-ve të të dhënave at masave të sigurimit.
 
 ---
 
-**Fatmirë me mbrojtjen! 💪**
+**Suksese koleg**
