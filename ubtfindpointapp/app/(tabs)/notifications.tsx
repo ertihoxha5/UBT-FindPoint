@@ -74,12 +74,10 @@ export default function NotificationsScreen() {
       setMarkingAllRead(true);
       await markAllNotificationsRead();
 
-      // Update UI immediately
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: 1 })));
       setUnreadCount(0);
 
-      // Optional: Show success message
-      // Alert.alert('Success', 'All notifications marked as read');
+    
     } catch (e) {
       console.error('Failed to mark all as read:', e);
       Alert.alert(

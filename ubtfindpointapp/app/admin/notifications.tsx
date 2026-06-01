@@ -72,7 +72,6 @@ export default function AdminNotifications() {
       setMarkingAllRead(true);
       await markAllNotificationsRead();
 
-      // Optimistically update UI
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: 1 })));
       setUnreadCount(0);
     } catch (e) {

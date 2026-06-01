@@ -68,7 +68,6 @@ export default function ChatView({ conversationId }: { conversationId: number })
   }, [auth]);
 
   useEffect(() => {
-    // Scroll to bottom when messages change
     if (messages.length > 0) {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
@@ -219,7 +218,6 @@ export default function ChatView({ conversationId }: { conversationId: number })
           showsVerticalScrollIndicator={false}
         />
 
-        {/* Composer */}
         <View style={[styles.composerWrap, keyboardVisible && styles.composerWrapKeyboardVisible]}>
           <View style={styles.composer}>
             <View style={styles.inputContainer}>

@@ -77,24 +77,20 @@ export const uploadItem = async (req, res) => {
     };
 
     if (!payload.title || !payload.type || !payload.category_id || !payload.location_id) {
-      // Clean up uploaded files if validation fails
       if (req.files) {
         req.files.forEach((file) => {
           try {
             fs.unlinkSync(file.path);
           } catch (err) {
-            // Ignore cleanup errors
           }
         });
       }
       return res.status(400).json({ error: "title, type, category_id and location_id are required" });
     }
 
-    // Process uploaded files
     const mediaUrls = [];
     if (req.files && req.files.length > 0) {
       req.files.forEach((file) => {
-        // Store relative URL path for accessing files
         const relativePath = `/assets/upload/${file.filename}`;
         mediaUrls.push(relativePath);
       });
@@ -118,13 +114,11 @@ export const uploadItem = async (req, res) => {
     });
     res.status(201).json({ message: "Item created with media", itemId });
   } catch (error) {
-    // Clean up uploaded files on error
     if (req.files) {
       req.files.forEach((file) => {
         try {
           fs.unlinkSync(file.path);
         } catch (err) {
-          // Ignore cleanup errors
         }
       });
     }

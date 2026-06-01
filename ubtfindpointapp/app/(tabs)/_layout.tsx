@@ -1,7 +1,6 @@
 import { Tabs, useRouter } from 'expo-router';
 import React from 'react';
 import { TouchableOpacity, Platform, View, Text } from 'react-native';
-// import { BlurView } from 'expo-blur';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -14,7 +13,6 @@ export default function TabLayout() {
   const router = useRouter();
   const isDark = colorScheme === 'dark';
   
-  // Modern blue theme colors
   const primaryColor = '#4a90e2';
   const primaryLight = 'rgba(74, 144, 226, 0.1)';
   const primaryDark = '#1a3a5c';
@@ -92,7 +90,6 @@ export default function TabLayout() {
                 if (!mounted) return;
                 setUnread(Number(data.unreadCount || 0));
               } catch (e) {
-                // ignore
               }
             };
 
