@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { notificationRepository, type Notification } from '../model/NotificationRepository';
 
 export function useNotificationViewModel() {
@@ -31,7 +32,7 @@ export function useNotificationViewModel() {
 
       setNotifications(prev =>
         prev.map(n =>
-          n.notification_id === notificationId ? { ...n, is_read: 1 } : n
+          String(n.notification_id) === String(notificationId) ? { ...n, is_read: 1 } : n
         )
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
@@ -59,10 +60,11 @@ export function useNotificationViewModel() {
 
   const onRefresh = useCallback(() => loadNotifications(true), [loadNotifications]);
 
-  // Initial load
-  useEffect(() => {
-    loadNotifications();
-  }, [loadNotifications]);
+  useFocusEffect(
+    useCallback(() => {
+      void loadNotifications();
+    }, [loadNotifications])
+  );
 
   return {
     notifications,

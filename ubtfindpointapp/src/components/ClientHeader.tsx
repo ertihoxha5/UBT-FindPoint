@@ -5,10 +5,12 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthViewModel } from '../features/auth/viewmodel/AuthViewModel';
+import { useNotificationViewModel } from '../features/notifications/viewmodel/NotificationViewModel';
 
 export default function ClientHeader() {
   const router = useRouter();
   const { user } = useAuthViewModel();
+  const { unreadCount } = useNotificationViewModel();
 
   const userName = user?.fullName || user?.name || user?.email || 'Guest';
   const firstName = userName.split(' ')[0];
@@ -59,6 +61,13 @@ export default function ClientHeader() {
               activeOpacity={0.7}
             >
               <Ionicons name="notifications-outline" size={22} color="#4a90e2" />
+              {unreadCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -150,5 +159,26 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(74, 144, 226, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+    overflow: 'visible',
+  },
+  badge: {
+    position: 'absolute',
+    top: -2,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#ff3b30',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: '#ffffff',
+  },
+  badgeText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '800',
   },
 });

@@ -285,12 +285,12 @@ export const updateOwnedItem = async (itemId, userId, payload) => {
   return result.affectedRows > 0;
 };
 
-export const updateOwnedItemStatus = async (itemId, userId, { status, type = null }) => {
+export const updateOwnedItemStatus = async (itemId, userId, { status, type = null, moderationStatus = "pending" }) => {
   const [result] = await db.query(
     `UPDATE items
-     SET status = ?, type = COALESCE(?, type), moderation_status = 'pending'
+     SET status = ?, type = COALESCE(?, type), moderation_status = ?
      WHERE item_id = ? AND user_id = ?`,
-    [status, type, itemId, userId]
+    [status, type, moderationStatus, itemId, userId]
   );
 
   return result.affectedRows > 0;
@@ -306,19 +306,29 @@ export const getItemById = async (itemId) => {
   return items.find((item) => Number(item.item_id) === Number(itemId)) || null;
 };
 
-export const listItemsForAdmin = async ({ search = "", moderationStatus = "all", type = "all" } = {}) => {
+export const listItemsForAdmin = async ({
+  search = "",
+  moderationStatus = "all",
+  type = "all",
+  status = "all",
+} = {}) => {
   const hasModerationStatus = await itemsSupportModerationStatus();
   const where = [];
   const params = [];
 
   if (search) {
-    where.push("(i.title LIKE ? OR i.description LIKE ? OR u.fullName LIKE ?)");
-    params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    where.push("(i.title LIKE ? OR i.description LIKE ? OR u.fullName LIKE ? OR c.name LIKE ? OR l.name LIKE ?)");
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
   }
 
   if (type !== "all") {
     where.push("i.type = ?");
     params.push(type);
+  }
+
+  if (status !== "all") {
+    where.push("i.status = ?");
+    params.push(status);
   }
 
   if (moderationStatus !== "all" && hasModerationStatus) {

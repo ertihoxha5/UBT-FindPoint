@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AdminShell, { adminStyles } from '@/src/features/admin/components/AdminShell';
+import { StatisticsGraphs } from '@/src/features/admin/components/StatisticsGraphs';
 import { getAdminDashboard, openAdminDashboardPdf } from '@/src/features/admin/service/adminService';
 import { useAuthViewModel } from '@/src/features/auth/viewmodel/AuthViewModel';
 
@@ -78,20 +79,35 @@ export default function AdminDashboardScreen() {
           </View>
 
           <View style={adminStyles.card}>
-            <Text style={adminStyles.cardTitle}>Activity trend</Text>
-            <Text style={adminStyles.cardSubtitle}>A rolling view of new items and signups over the last 7 days.</Text>
-            {(dashboard?.itemsByDay || []).map((entry: any) => (
-              <BarRow key={`items-${entry.bucket}`} label={`Items ${entry.bucket}`} value={entry.total} color="#2563eb" />
-            ))}
-            {(dashboard?.usersByDay || []).map((entry: any) => (
-              <BarRow key={`users-${entry.bucket}`} label={`Users ${entry.bucket}`} value={entry.total} color="#059669" />
-            ))}
+            <Text style={adminStyles.cardTitle}>Statistics graphs</Text>
+            <Text style={adminStyles.cardSubtitle}>A visual overview of moderation status, user activity, and seven-day trends.</Text>
+            <StatisticsGraphs
+              totalUsers={dashboard?.totalUsers ?? 0}
+              totalItems={dashboard?.totalItems ?? 0}
+              approvedItems={dashboard?.approvedItems ?? 0}
+              pendingItems={dashboard?.pendingItems ?? 0}
+              blockedUsers={dashboard?.blockedUsers ?? 0}
+              itemsByDay={dashboard?.itemsByDay || []}
+              usersByDay={dashboard?.usersByDay || []}
+            />
           </View>
 
           <View style={adminStyles.card}>
-            <Text style={adminStyles.cardTitle}>Recent activity</Text>
+            <View style={styles.activityHeaderRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={adminStyles.cardTitle}>Recent activity</Text>
+                <Text style={adminStyles.cardSubtitle}>Showing the latest 3 items. Tap show all to open all notifications.</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.showAllButton}
+                onPress={() => router.push('/admin/notifications')}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.showAllButtonText}>Show all</Text>
+              </TouchableOpacity>
+            </View>
             {dashboard?.recentActivity?.length ? (
-              dashboard.recentActivity.map((activity: any) => (
+              dashboard.recentActivity.slice(0, 3).map((activity: any) => (
                 <View key={activity.activity_id} style={styles.activityRow}>
                   <Text style={styles.activityTitle}>
                     {activity.admin_name || 'Admin'} {activity.action_type} {activity.action_target}
@@ -124,21 +140,6 @@ function StatCard({ label, value, icon, tint }: { label: string; value: number; 
   );
 }
 
-function BarRow({ label, value, color }: { label: string; value: number; color: string }) {
-  const width = Math.max(12, Math.min(100, Number(value || 0) * 12));
-  return (
-    <View style={{ marginBottom: 12 }}>
-      <View style={styles.barHeader}>
-        <Text style={styles.barLabel}>{label}</Text>
-        <Text style={styles.barValue}>{value}</Text>
-      </View>
-      <View style={styles.barTrack}>
-        <View style={[styles.barFill, { width: `${width}%`, backgroundColor: color }]} />
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   heroButton: {
     backgroundColor: '#ffffff',
@@ -161,6 +162,25 @@ const styles = StyleSheet.create({
   heroGhostButtonText: {
     color: '#ffffff',
     fontWeight: '700',
+  },
+  activityHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 8,
+  },
+  showAllButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: '#eef4fb',
+    borderWidth: 1,
+    borderColor: '#dbe7f3',
+  },
+  showAllButtonText: {
+    color: '#2563eb',
+    fontWeight: '800',
+    fontSize: 12,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -193,31 +213,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     marginTop: 6,
-  },
-  barHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  barLabel: {
-    color: '#334155',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  barValue: {
-    color: '#64748b',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  barTrack: {
-    height: 10,
-    borderRadius: 999,
-    backgroundColor: '#e5edf6',
-    overflow: 'hidden',
-  },
-  barFill: {
-    height: '100%',
-    borderRadius: 999,
   },
   activityRow: {
     paddingVertical: 10,

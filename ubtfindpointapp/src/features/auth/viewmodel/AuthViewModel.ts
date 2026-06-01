@@ -59,6 +59,11 @@ export const useAuthViewModel = () => {
     await api.post("/auth/register", { fullName, email, password });
   }, []);
 
+  const requestPasswordReset = useCallback(async (email: string, newPassword: string, confirmPassword: string): Promise<any> => {
+    const res = await api.post("/auth/forgot-password", { email, newPassword, confirmPassword });
+    return res.data;
+  }, []);
+
   const updateCurrentUser = useCallback(async (payload: FormData | Record<string, any>): Promise<User> => {
     const res = await api.put("/auth/me", payload, {
       headers: {
@@ -92,12 +97,13 @@ export const useAuthViewModel = () => {
       loading,
       login, 
       register, 
+      requestPasswordReset,
       getCurrentUser, 
       updateCurrentUser, 
       logout, 
       deleteAccount, 
       hasSession 
     }),
-    [user, loading, login, register, getCurrentUser, updateCurrentUser, logout, deleteAccount, hasSession]
+    [user, loading, login, register, requestPasswordReset, getCurrentUser, updateCurrentUser, logout, deleteAccount, hasSession]
   );
 };

@@ -1,4 +1,5 @@
 import db from "../config/db.js";
+import { createNotification } from "../repositories/notificationRepository.js";
 import { requireUserId } from "../utils/auth.js";
 
 const ensureConversationParticipant = async (conversationId, userId) => {
@@ -137,6 +138,32 @@ export const sendMessage = async (req, res) => {
       "INSERT INTO messages (conversation_id, sender_id, message) VALUES (?, ?, ?)",
       [conversationId, userId, message]
     );
+
+    const recipientUserId = conversation.user1_id === userId ? conversation.user2_id : conversation.user1_id;
+    const [[senderRow]] = await db.query(
+      `SELECT fullName, email
+       FROM users
+       WHERE userId = ?`,
+      [userId]
+    );
+
+    if (recipientUserId) {
+      try {
+        await createNotification({
+          recipientUserId,
+          type: "message_received",
+          title: "New message",
+          message: `${senderRow?.fullName || senderRow?.email || "Someone"} sent you a message: ${message.slice(0, 80)}${message.length > 80 ? "..." : ""}`,
+          link: "/home/chat",
+          metadata: {
+            conversationId,
+            senderId: userId,
+          },
+        });
+      } catch (notificationError) {
+        console.error("Failed to create message notification:", notificationError.message);
+      }
+    }
 
     res.status(201).json({
       success: true,

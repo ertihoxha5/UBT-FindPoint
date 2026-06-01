@@ -8,7 +8,7 @@ const navItems = [
   { label: 'Dashboard', route: '/admin', icon: 'grid-outline' },
   { label: 'Users', route: '/admin/users', icon: 'people-outline' },
   { label: 'Items', route: '/admin/items', icon: 'cube-outline' },
-  { label: 'Reports', route: '/admin/reports', icon: 'flag-outline' },
+  { label: 'Notifications', route: '/admin/notifications', icon: 'notifications-outline' },
 ];
 
 export default function AdminShell({
@@ -30,81 +30,80 @@ export default function AdminShell({
   const isDark = useColorScheme() === 'dark';
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.content}
-      style={[styles.screen, isDark && styles.screenDark]}
-      showsVerticalScrollIndicator={false}
-    >
-      <LinearGradient
-        colors={isDark ? ['#111827', '#0f172a', '#172554'] : ['#112f52', '#123e70', '#2563eb']}
-        style={styles.hero}
+    <View style={[styles.screen, isDark && styles.screenDark]}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.heroGlowTop} />
-        <View style={styles.heroGlowBottom} />
-        <View style={styles.heroContent}>
-          <View style={styles.heroIcon}>
-            <Ionicons name="shield-checkmark-outline" size={32} color="#4a90e2" />
-          </View>
-          <View style={styles.heroText}>
-            <Text style={[styles.eyebrow, isDark && styles.eyebrowDark]}>Admin Control Center</Text>
-            <Text style={[styles.title, isDark && styles.titleDark]}>{title}</Text>
-            <Text style={[styles.subtitle, isDark && styles.subtitleDark]}>{subtitle}</Text>
-          </View>
-        </View>
-
-        <View style={styles.heroActions}>
-          {rightAction}
-          {onLogout && (
-            <TouchableOpacity
-              style={[styles.logoutButton, isDark && styles.logoutButtonDark]}
-              onPress={onLogout}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="log-out-outline" size={18} color="#ff6b6b" />
-              <Text style={[styles.logoutButtonText, isDark && styles.logoutButtonTextDark]}>Logout</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </LinearGradient>
-
-      <View style={styles.navWrapper}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.navRow}
+        <LinearGradient
+          colors={isDark ? ['#111827', '#0f172a', '#172554'] : ['#112f52', '#123e70', '#2563eb']}
+          style={styles.hero}
         >
+          <View style={styles.heroGlowTop} />
+          <View style={styles.heroGlowBottom} />
+          <View style={styles.heroContent}>
+            <View style={styles.heroIcon}>
+              <Ionicons name="shield-checkmark-outline" size={32} color="#4a90e2" />
+            </View>
+            <View style={styles.heroText}>
+              <View style={styles.heroPill}>
+                <Ionicons name="sparkles-outline" size={12} color="#dbeafe" />
+                <Text style={styles.heroPillText}>Live admin overview</Text>
+              </View>
+              <Text style={[styles.eyebrow, isDark && styles.eyebrowDark]}>Admin Control Center</Text>
+              <Text style={[styles.title, isDark && styles.titleDark]}>{title}</Text>
+              <Text style={[styles.subtitle, isDark && styles.subtitleDark]}>{subtitle}</Text>
+            </View>
+          </View>
+
+          <View style={styles.heroActions}>
+            {rightAction}
+            {onLogout && (
+              <TouchableOpacity
+                style={[styles.logoutButton, isDark && styles.logoutButtonDark]}
+                onPress={onLogout}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="log-out-outline" size={18} color="#ff6b6b" />
+                <Text style={[styles.logoutButtonText, isDark && styles.logoutButtonTextDark]}>Logout</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </LinearGradient>
+
+        <View style={styles.childrenContainer}>
+          {children}
+        </View>
+      </ScrollView>
+
+      <View style={styles.bottomNavWrap}>
+        <View style={[styles.bottomNav, isDark && styles.bottomNavDark]}>
+          <View style={styles.bottomNavGlow} />
           {navItems.map((item) => {
             const active = activeRoute === item.route;
             return (
               <TouchableOpacity
                 key={item.route}
-                style={[styles.navChip, active && styles.navChipActive, isDark && styles.navChipDark]}
+                style={[styles.bottomNavItem, active && styles.bottomNavItemActive]}
                 onPress={() => router.replace(item.route as any)}
                 activeOpacity={0.85}
               >
-                <LinearGradient
-                  colors={active ? ['#4a90e2', '#357abd'] : [isDark ? '#1e293b' : '#ffffff', isDark ? '#0f172a' : '#f8fbff']}
-                  style={[styles.navChipGradient, active && styles.navChipGradientActive]}
-                >
+                <View style={[styles.bottomNavIconWrap, active && styles.bottomNavIconWrapActive]}>
                   <Ionicons
                     name={item.icon as any}
                     size={18}
                     color={active ? '#ffffff' : isDark ? '#94a3b8' : '#6c8db0'}
                   />
-                  <Text style={[styles.navChipText, active && styles.navChipTextActive, isDark && styles.navChipTextDark]}>
-                    {item.label}
-                  </Text>
-                </LinearGradient>
+                </View>
+                <Text style={[styles.bottomNavText, active && styles.bottomNavTextActive, isDark && styles.bottomNavTextDark]}>
+                  {item.label}
+                </Text>
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
+        </View>
       </View>
-
-      <View style={styles.childrenContainer}>
-        {children}
-      </View>
-    </ScrollView>
+    </View>
   );
 }
 
@@ -290,55 +289,76 @@ const styles = StyleSheet.create({
     backgroundColor: '#0f172a',
   },
   content: {
-    paddingBottom: 40,
+    paddingTop: 8,
+    paddingBottom: 120,
   },
   hero: {
-    borderRadius: 28,
-    padding: 24,
+    borderRadius: 30,
+    padding: 28,
     marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 16,
+    marginTop: 26,
+    marginBottom: 18,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 8,
     overflow: 'hidden',
   },
   heroGlowTop: {
     position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    top: -60,
-    right: -40,
-    backgroundColor: 'rgba(255,255,255,0.10)',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    top: -70,
+    right: -50,
+    backgroundColor: 'rgba(255,255,255,0.11)',
   },
   heroGlowBottom: {
     position: 'absolute',
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    bottom: -50,
-    left: -20,
-    backgroundColor: 'rgba(96,165,250,0.20)',
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    bottom: -60,
+    left: -30,
+    backgroundColor: 'rgba(96,165,250,0.22)',
   },
   heroContent: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 16,
-    marginBottom: 16,
+    gap: 18,
+    marginBottom: 18,
   },
   heroIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(74, 144, 226, 0.15)',
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   heroText: {
     flex: 1,
+  },
+  heroPill: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    marginBottom: 10,
+  },
+  heroPillText: {
+    color: '#dbeafe',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
   },
   eyebrow: {
     color: '#4a90e2',
@@ -400,48 +420,80 @@ const styles = StyleSheet.create({
   },
   navWrapper: {
     marginHorizontal: 16,
-    marginBottom: 16,
+    marginTop: 10,
+    marginBottom: 8,
   },
-  navRow: {
-    gap: 10,
-    paddingRight: 8,
+  bottomNavWrap: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
   },
-  navChip: {
-    borderRadius: 40,
-    overflow: 'hidden',
+  bottomNav: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderRadius: 28,
     borderWidth: 1,
     borderColor: '#dbe7f3',
     backgroundColor: '#ffffff',
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    overflow: 'hidden',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 6,
   },
-  navChipDark: {
-    backgroundColor: '#1e293b',
+  bottomNavDark: {
+    backgroundColor: '#111827',
     borderColor: '#334155',
   },
-  navChipActive: {
-    borderColor: '#4a90e2',
+  bottomNavGlow: {
+    position: 'absolute',
+    top: -24,
+    right: -18,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: 'rgba(74, 144, 226, 0.08)',
   },
-  navChipGradient: {
-    flexDirection: 'row',
+  bottomNavItem: {
+    flex: 1,
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
-  navChipGradientActive: {
+  bottomNavItemActive: {
+    backgroundColor: 'rgba(74, 144, 226, 0.12)',
+  },
+  bottomNavIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#eef4fb',
+  },
+  bottomNavIconWrapActive: {
     backgroundColor: '#4a90e2',
   },
-  navChipText: {
+  bottomNavText: {
     color: '#6c8db0',
-    fontWeight: '600',
-    fontSize: 14,
+    fontWeight: '700',
+    fontSize: 11,
+    textAlign: 'center',
   },
-  navChipTextDark: {
+  bottomNavTextDark: {
     color: '#94a3b8',
   },
-  navChipTextActive: {
-    color: '#ffffff',
+  bottomNavTextActive: {
+    color: '#0f5ee8',
   },
   childrenContainer: {
     paddingHorizontal: 16,
+    paddingBottom: 8,
   },
 });

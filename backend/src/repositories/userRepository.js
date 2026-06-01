@@ -97,20 +97,29 @@ export const updateUserLastLogin = async (userId) => {
   await db.query("UPDATE users SET lastLogin = CURRENT_TIMESTAMP WHERE userId = ?", [userId]);
 };
 
-export const listUsersForAdmin = async ({ search = "", status = "all" } = {}) => {
+export const updateUserPassword = async (userId, passwordHash) => {
+  await db.query("UPDATE users SET passwordHash = ? WHERE userId = ?", [passwordHash, userId]);
+};
+
+export const listUsersForAdmin = async ({ search = "", status = "all", role = "all" } = {}) => {
   const profileTableExists = await hasTable("user_profiles");
   const where = [];
   const params = [];
 
   if (search) {
-    where.push("(u.fullName LIKE ? OR u.email LIKE ?)");
-    params.push(`%${search}%`, `%${search}%`);
+    where.push("(u.fullName LIKE ? OR u.email LIKE ? OR u.faculty LIKE ? OR u.phoneNumber LIKE ?)");
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
   }
 
   if (status === "blocked") {
     where.push("u.isBlocked = 1");
   } else if (status === "active") {
     where.push("u.isBlocked = 0");
+  }
+
+  if (role !== "all") {
+    where.push("u.role = ?");
+    params.push(role);
   }
 
   const [rows] = await db.query(

@@ -3,6 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert } from 'react
 import { useRouter } from 'expo-router';
 import { fetchNotifications, markNotificationRead, markAllNotificationsRead } from '@/src/services/notifications';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import AdminShell, { adminStyles } from '@/src/features/admin/components/AdminShell';
 
 interface Notification {
   notification_id: string | number;
@@ -117,53 +118,59 @@ export default function AdminNotifications() {
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.headerRow}>
-        <Text style={styles.header}>Admin Notifications</Text>
+    <AdminShell
+      title="Admin Notifications"
+      subtitle="Track moderation alerts, account changes, and message activity in one place."
+      activeRoute="/admin/notifications"
+    >
+      <View style={adminStyles.card}>
+        <View style={styles.headerRow}>
+          <Text style={styles.header}>Inbox</Text>
 
-        {unreadCount > 0 && (
-          <View style={styles.unreadBadge}>
-            <Text style={styles.unreadBadgeText}>{unreadCount}</Text>
-          </View>
-        )}
+          {unreadCount > 0 && (
+            <View style={styles.unreadBadge}>
+              <Text style={styles.unreadBadgeText}>{unreadCount}</Text>
+            </View>
+          )}
 
-        <TouchableOpacity 
-          onPress={markAllAsRead} 
-          style={styles.markAllBtn}
-          disabled={markingAllRead || unreadCount === 0}
-        >
-          <Text style={[
-            styles.markAllText,
-            (markingAllRead || unreadCount === 0) && { color: '#9aa8bd' }
-          ]}>
-            {markingAllRead ? 'Marking...' : 'Mark all read'}
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={markAllAsRead}
+            style={styles.markAllBtn}
+            disabled={markingAllRead || unreadCount === 0}
+          >
+            <Text style={[
+              styles.markAllText,
+              (markingAllRead || unreadCount === 0) && { color: '#9aa8bd' }
+            ]}>
+              {markingAllRead ? 'Marking...' : 'Mark all read'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <FlatList
+          data={notifications}
+          keyExtractor={(item) => String(item.notification_id)}
+          renderItem={renderItem}
+          ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            !loading ? <Text style={styles.emptyText}>No notifications yet</Text> : null
+          }
+          scrollEnabled={false}
+        />
       </View>
-
-      <FlatList
-        data={notifications}
-        keyExtractor={(item) => String(item.notification_id)}
-        renderItem={renderItem}
-        ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          !loading ? <Text style={styles.emptyText}>No notifications yet</Text> : null
-        }
-      />
-    </View>
+    </AdminShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'transparent' },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    paddingBottom: 16,
     gap: 12,
   },
-  header: { fontSize: 20, fontWeight: '700', flex: 1 },
+  header: { fontSize: 20, fontWeight: '700', flex: 1, color: '#10233f' },
   unreadBadge: {
     backgroundColor: '#ff3b30',
     paddingHorizontal: 8,
@@ -204,7 +211,7 @@ const styles = StyleSheet.create({
   message: { color: '#6b7785', lineHeight: 18 },
   time: { color: '#9aa8bd', fontSize: 12, marginTop: 8, alignSelf: 'flex-end' },
 
-  listContent: { padding: 16 },
+  listContent: { paddingTop: 4, paddingBottom: 8 },
   emptyText: {
     textAlign: 'center',
     color: '#9aa8bd',

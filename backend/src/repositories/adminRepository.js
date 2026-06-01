@@ -172,59 +172,170 @@ export const buildDashboardPdf = async () => {
   const reports = await listReportsForAdmin({ status: "pending" });
 
   return new Promise((resolve) => {
-    const doc = new PDFDocument({ margin: 40, size: "A4" });
+    const doc = new PDFDocument({ margin: 34, size: "A4" });
     const chunks = [];
 
     doc.on("data", (chunk) => chunks.push(chunk));
     doc.on("end", () => resolve(Buffer.concat(chunks)));
 
-    doc.fontSize(22).text("UBT FindPoint Admin Report", { align: "center" });
-    doc.moveDown();
-    doc.fontSize(11).fillColor("#555555").text(`Generated: ${new Date().toLocaleString()}`);
-    doc.moveDown();
+    const pageWidth = doc.page.width;
+    const pageHeight = doc.page.height;
+    const colors = {
+      navy: "#112f52",
+      blue: "#2563eb",
+      sky: "#dbeafe",
+      text: "#10233f",
+      muted: "#64748b",
+      border: "#dbe7f3",
+      soft: "#f8fbff",
+      green: "#16a34a",
+      amber: "#d97706",
+      red: "#dc2626",
+      violet: "#7c3aed",
+    };
 
-    const overviewRows = [
-      ["Total users", stats.totalUsers],
-      ["Blocked users", stats.blockedUsers],
-      ["Total items", stats.totalItems],
-      ["Approved items", stats.approvedItems],
-      ["Pending items", stats.pendingItems],
-      ["Reported items", stats.totalReports],
-      ["Pending reports", stats.pendingReports],
+    const drawSectionHeader = (title, subtitle, y) => {
+      doc.fillColor(colors.text).font("Helvetica-Bold").fontSize(15).text(title, 34, y);
+      if (subtitle) {
+        doc.fillColor(colors.muted).font("Helvetica").fontSize(9).text(subtitle, 34, y + 18, {
+          width: pageWidth - 68,
+        });
+      }
+      return y + (subtitle ? 34 : 22);
+    };
+
+    const drawMetricCard = (x, y, width, label, value, accent) => {
+      doc.roundedRect(x, y, width, 58, 12).fillAndStroke(colors.soft, colors.border);
+      doc.roundedRect(x, y, 6, 58, 12).fill(accent);
+      doc.fillColor(colors.muted).font("Helvetica-Bold").fontSize(8).text(label.toUpperCase(), x + 16, y + 12, {
+        width: width - 22,
+      });
+      doc.fillColor(colors.text).font("Helvetica-Bold").fontSize(18).text(String(value ?? 0), x + 16, y + 28, {
+        width: width - 22,
+      });
+    };
+
+    const drawPill = (x, y, label, value, accent) => {
+      const pillWidth = 146;
+      doc.roundedRect(x, y, pillWidth, 30, 15).fillAndStroke("#ffffff", colors.border);
+      doc.roundedRect(x, y, 30, 30, 15).fill(accent);
+      doc.fillColor("#ffffff").font("Helvetica-Bold").fontSize(10).text(String(value ?? 0), x, y + 10, {
+        width: 30,
+        align: "center",
+      });
+      doc.fillColor(colors.muted).font("Helvetica-Bold").fontSize(8).text(label, x + 38, y + 10, {
+        width: pillWidth - 46,
+      });
+    };
+
+    doc.rect(0, 0, pageWidth, 118).fill(colors.navy);
+    doc.fillColor("#ffffff").fontSize(23).font("Helvetica-Bold").text("UBT FindPoint Admin Report", 34, 34);
+    doc.fontSize(10).font("Helvetica").fillColor(colors.sky).text(`Generated: ${new Date().toLocaleString()}`, 34, 68);
+    doc.fillColor("#dbeafe").fontSize(9).text("A concise operational snapshot for platform moderation and review.", 34, 86);
+
+    doc.roundedRect(pageWidth - 162, 28, 128, 58, 14).fillAndStroke("rgba(255,255,255,0.12)", "rgba(255,255,255,0.18)");
+    doc.fillColor("#ffffff").font("Helvetica-Bold").fontSize(10).text("Overview", pageWidth - 146, 40);
+    doc.fillColor("#dbeafe").font("Helvetica").fontSize(8).text("Last updated now", pageWidth - 146, 56);
+    doc.fillColor("#ffffff").font("Helvetica-Bold").fontSize(16).text(String(stats.totalItems ?? 0), pageWidth - 146, 66);
+
+    let y = 130;
+
+    const summaryCards = [
+      { label: "Total users", value: stats.totalUsers, accent: colors.blue },
+      { label: "Blocked users", value: stats.blockedUsers, accent: colors.red },
+      { label: "Total items", value: stats.totalItems, accent: colors.green },
+      { label: "Pending reports", value: stats.pendingReports, accent: colors.amber },
     ];
 
-    doc.fillColor("#111111").fontSize(16).text("Overview");
-    doc.moveDown(0.5);
-    overviewRows.forEach(([label, value]) => {
-      doc.fontSize(11).text(`${label}: ${value}`);
+    const cardWidth = (pageWidth - 100) / 4;
+    summaryCards.forEach((card, index) => {
+      const x = 34 + index * (cardWidth + 8);
+      drawMetricCard(x, y, cardWidth, card.label, card.value, card.accent);
     });
 
-    doc.moveDown();
-    doc.fontSize(16).text("Recent Activity");
-    doc.moveDown(0.5);
-    stats.recentActivity.slice(0, 10).forEach((activity) => {
-      doc.fontSize(10).text(
-        `${new Date(activity.created_at).toLocaleString()} - ${activity.admin_name || "Admin"} ${activity.action_type} ${activity.action_target} ${activity.target_id || ""}`.trim()
-      );
-    });
+    y += 78;
+    y = drawSectionHeader("Operations snapshot", "High level moderation counts and notification status.", y);
+    drawPill(34, y, "Approved items", stats.approvedItems, colors.green);
+    drawPill(192, y, "Pending items", stats.pendingItems, colors.amber);
+    drawPill(350, y, "Reported items", stats.totalReports, colors.red);
+    drawPill(508, y, "Unread notifications", stats.unreadAdminNotifications, colors.violet);
+    y += 42;
 
-    doc.moveDown();
-    doc.fontSize(16).text("Pending Reports");
-    doc.moveDown(0.5);
-    if (!reports.length) {
-      doc.fontSize(10).text("No pending reports.");
+    doc.roundedRect(34, y, pageWidth - 68, 1, 0).fill(colors.border);
+    y += 16;
+
+    y = drawSectionHeader("Recent activity", "The latest administrative actions performed in the system.", y);
+    const activityRows = stats.recentActivity.slice(0, 8);
+    if (!activityRows.length) {
+      doc.fillColor(colors.muted).font("Helvetica").fontSize(10).text("No recent admin activity yet.", 42, y);
+      y += 16;
     } else {
-      reports.slice(0, 20).forEach((report) => {
-        doc.fontSize(10).text(
-          `#${report.report_id} | Item: ${report.item_title || "Unknown"} | Reason: ${report.reason} | Reporter: ${report.reported_by_name || "Unknown"}`
-        );
-        if (report.details) {
-          doc.fontSize(9).fillColor("#555555").text(`Details: ${report.details}`);
-          doc.fillColor("#111111");
+      activityRows.forEach((activity, index) => {
+        const rowHeight = 24;
+        if (y + rowHeight > pageHeight - 80) {
+          doc.addPage();
+          y = 40;
+          y = drawSectionHeader("Recent activity", "The latest administrative actions performed in the system.", y);
         }
-        doc.moveDown(0.3);
+
+        doc.roundedRect(34, y, pageWidth - 68, rowHeight, 8).fillAndStroke(index % 2 === 0 ? "#ffffff" : "#f8fbff", colors.border);
+        doc.fillColor(colors.text).font("Helvetica-Bold").fontSize(9).text(
+          `${activity.admin_name || "Admin"} ${activity.action_type} ${activity.action_target}`,
+          46,
+          y + 7,
+          { width: pageWidth - 120 }
+        );
+        doc.fillColor(colors.muted).font("Helvetica").fontSize(8).text(
+          `${new Date(activity.created_at).toLocaleString()}${activity.target_id ? ` • #${activity.target_id}` : ""}`,
+          pageWidth - 150,
+          y + 7,
+          { width: 104, align: "right" }
+        );
+        y += rowHeight + 6;
       });
     }
+
+    y += 4;
+    y = drawSectionHeader("Pending reports", "Items that still need attention from the admin team.", y);
+    if (!reports.length) {
+      doc.roundedRect(34, y, pageWidth - 68, 34, 10).fillAndStroke("#ffffff", colors.border);
+      doc.fillColor(colors.muted).font("Helvetica").fontSize(10).text("No pending reports.", 46, y + 11);
+    } else {
+      reports.slice(0, 12).forEach((report, index) => {
+        const blockHeight = report.details ? 44 : 34;
+        if (y + blockHeight > pageHeight - 70) {
+          doc.addPage();
+          y = 40;
+          y = drawSectionHeader("Pending reports", "Items that still need attention from the admin team.", y);
+        }
+
+        doc.roundedRect(34, y, pageWidth - 68, blockHeight, 10).fillAndStroke(index % 2 === 0 ? "#ffffff" : "#f8fbff", colors.border);
+        doc.roundedRect(34, y, 8, blockHeight, 10).fill(colors.amber);
+        doc.fillColor(colors.text).fontSize(9).font("Helvetica-Bold").text(`#${report.report_id}  ${report.item_title || "Unknown item"}`, 50, y + 8, {
+          width: pageWidth - 120,
+        });
+        doc.fontSize(8).font("Helvetica").fillColor(colors.muted).text(
+          `Reason: ${report.reason} | Reporter: ${report.reported_by_name || "Unknown"}`,
+          50,
+          y + 20,
+          { width: pageWidth - 120 }
+        );
+        if (report.details) {
+          doc.fillColor(colors.muted).fontSize(8).text(`Details: ${report.details}`, 50, y + 30, {
+            width: pageWidth - 120,
+            ellipsis: true,
+          });
+        }
+        y += blockHeight + 8;
+      });
+    }
+
+    doc.fillColor(colors.muted).fontSize(8).font("Helvetica").text(
+      "Generated from the UBT FindPoint admin dashboard. This report summarizes the current moderation state and recent administrative activity.",
+      34,
+      pageHeight - 48,
+      { width: pageWidth - 68, align: "center" }
+    );
 
     doc.end();
   });

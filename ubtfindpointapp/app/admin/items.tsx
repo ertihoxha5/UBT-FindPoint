@@ -1,23 +1,36 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import AdminShell, { adminStyles } from '@/src/features/admin/components/AdminShell';
-import { approveAdminItem, deleteAdminItem, getAdminItems, updateAdminItem } from '@/src/features/admin/service/adminService';
+import {
+  approveAdminItem,
+  deleteAdminItem,
+  getAdminItems,
+  updateAdminItem,
+} from '@/src/features/admin/service/adminService';
 
 export default function AdminItemsScreen() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'claimed' | 'resolved' | 'expired'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'lost' | 'found'>('all');
+  const [moderationFilter, setModerationFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [editingItem, setEditingItem] = useState<any | null>(null);
 
   const loadItems = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await getAdminItems({ search });
+      const response = await getAdminItems({
+        search,
+        status: statusFilter,
+        type: typeFilter,
+        moderationStatus: moderationFilter,
+      });
       setItems(response.data || []);
     } finally {
       setLoading(false);
     }
-  }, [search]);
+  }, [search, statusFilter, typeFilter, moderationFilter]);
 
   useEffect(() => {
     loadItems();
@@ -46,10 +59,54 @@ export default function AdminItemsScreen() {
             <Text style={adminStyles.badgeText}>Pending: {items.filter((item) => item.moderation_status === 'pending').length}</Text>
           </View>
         </View>
-        <TextInput value={search} onChangeText={setSearch} placeholder="Search by item title or owner" placeholderTextColor="#94a3b8" style={adminStyles.input} />
-        <TouchableOpacity style={adminStyles.button} onPress={loadItems} activeOpacity={0.88}>
-          <Text style={adminStyles.buttonText}>Refresh items</Text>
-        </TouchableOpacity>
+        <TextInput value={search} onChangeText={setSearch} placeholder="Search title, owner, category, location" placeholderTextColor="#94a3b8" style={adminStyles.input} />
+        <View style={styles.filterGroup}>
+          {(['all', 'lost', 'found'] as const).map((option) => (
+            <TouchableOpacity
+              key={option}
+              style={[styles.filterChip, typeFilter === option && styles.filterChipActive]}
+              onPress={() => setTypeFilter(option)}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.filterChipText, typeFilter === option && styles.filterChipTextActive]}>
+                {option === 'all' ? 'All types' : option === 'lost' ? 'Lost' : 'Found'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <View style={styles.filterGroup}>
+          {(['all', 'open', 'claimed', 'resolved', 'expired'] as const).map((option) => (
+            <TouchableOpacity
+              key={option}
+              style={[styles.filterChip, statusFilter === option && styles.filterChipActive]}
+              onPress={() => setStatusFilter(option)}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.filterChipText, statusFilter === option && styles.filterChipTextActive]}>
+                {option === 'all' ? 'All statuses' : option}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <View style={styles.filterGroup}>
+          {(['all', 'pending', 'approved', 'rejected'] as const).map((option) => (
+            <TouchableOpacity
+              key={option}
+              style={[styles.filterChip, moderationFilter === option && styles.filterChipActive]}
+              onPress={() => setModerationFilter(option)}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.filterChipText, moderationFilter === option && styles.filterChipTextActive]}>
+                {option === 'all' ? 'All moderation' : option}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <View style={styles.actionRow}>
+          <TouchableOpacity style={adminStyles.button} onPress={loadItems} activeOpacity={0.88}>
+            <Text style={adminStyles.buttonText}>Search</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (
@@ -73,8 +130,9 @@ export default function AdminItemsScreen() {
               <Text style={styles.reportCount}>{item.report_count || 0} reports</Text>
             </View>
             <Text style={styles.itemTitle}>{item.title}</Text>
-            <Text style={styles.itemMeta}>Owner: {item.fullName || 'Unknown owner'}</Text>
+            <Text style={styles.itemMeta}>Owner: {item.fullName || 'Unknown owner'} | {item.email || 'No email'}</Text>
             <Text style={styles.itemMeta}>Category: {item.category_name || 'No category'} | Location: {item.location_name || 'Unknown'}</Text>
+            <Text style={styles.itemMeta}>Status: {String(item.status || 'open').toUpperCase()} | Joined: {new Date(item.created_at).toLocaleDateString()}</Text>
             <Text style={styles.itemBody} numberOfLines={3}>
               {item.description || 'No description provided.'}
             </Text>
@@ -210,6 +268,31 @@ const styles = StyleSheet.create({
     gap: 10,
     flexWrap: 'wrap',
     marginTop: 14,
+  },
+  filterGroup: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#eef4fb',
+    borderWidth: 1,
+    borderColor: '#dbe7f3',
+  },
+  filterChipActive: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+  filterChipText: {
+    color: '#2563eb',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  filterChipTextActive: {
+    color: '#ffffff',
   },
   modalBackdrop: {
     flex: 1,

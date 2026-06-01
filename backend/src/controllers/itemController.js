@@ -249,7 +249,11 @@ export const markMyItemFound = async (req, res) => {
       return res.status(400).json({ error: "A valid itemId is required" });
     }
 
-    const updated = await updateOwnedItemStatus(itemId, userId, { status: "resolved", type: "found" });
+    const updated = await updateOwnedItemStatus(itemId, userId, {
+      status: "resolved",
+      type: "found",
+      moderationStatus: "approved",
+    });
 
     if (!updated) {
       return res.status(404).json({ error: "Report not found or not owned by this user." });
@@ -259,21 +263,14 @@ export const markMyItemFound = async (req, res) => {
 
     await createNotification({
       recipientUserId: userId,
-      type: "item_status_under_review",
-      title: "Your status change is under review",
-      message: `${item?.title || "This report"} was marked as found and is waiting for admin confirmation.`,
+      type: "item_marked_found",
+      title: "Item marked as found",
+      message: `${item?.title || "This report"} was marked as found and updated right away.`,
       link: "/profile",
-      metadata: { itemId, moderationStatus: "pending", requestedStatus: "resolved" },
-    });
-    await createAdminNotification({
-      type: "admin_item_review",
-      title: "Status change waiting for review",
-      message: `${item?.title || "An item"} was marked as found and needs admin review.`,
-      link: "/admin/items",
-      metadata: { itemId, submittedBy: userId },
+      metadata: { itemId, moderationStatus: "approved", requestedStatus: "resolved" },
     });
 
-    res.json({ message: "Report marked as found and sent for review" });
+    res.json({ message: "Report marked as found" });
   } catch (error) {
     const statusCode = error.message === "Unauthorized" ? 401 : 400;
     res.status(statusCode).json({ error: error.message });

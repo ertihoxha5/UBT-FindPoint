@@ -7,6 +7,7 @@ import {
   updateUserLastLogin,
   updateUserProfile,
   deleteUserAccount,
+  updateUserPassword,
 } from "../repositories/userRepository.js";
 
 export const registerUser = async (fullName, email, password) => {
@@ -91,4 +92,17 @@ export const removeUserAccount = async (userId) => {
   }
 
   await deleteUserAccount(userId);
+};
+
+export const updatePasswordByEmail = async ({ email, newPassword }) => {
+  const user = await findUserByEmail(email);
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  await updateUserPassword(user.userId, hashedPassword);
+
+  return { message: "Password updated" };
 };

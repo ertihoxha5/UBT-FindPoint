@@ -1,23 +1,30 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import AdminShell, { adminStyles } from '@/src/features/admin/components/AdminShell';
-import { deleteAdminUser, getAdminUsers, toggleAdminUserBlock, updateAdminUser } from '@/src/features/admin/service/adminService';
+import {
+  deleteAdminUser,
+  getAdminUsers,
+  toggleAdminUserBlock,
+  updateAdminUser,
+} from '@/src/features/admin/service/adminService';
 
 export default function AdminUsersScreen() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'blocked'>('all');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'user' | 'admin'>('all');
   const [editingUser, setEditingUser] = useState<any | null>(null);
 
   const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await getAdminUsers({ search });
+      const response = await getAdminUsers({ search, status: statusFilter, role: roleFilter });
       setUsers(response.data || []);
     } finally {
       setLoading(false);
     }
-  }, [search]);
+  }, [search, statusFilter, roleFilter]);
 
   useEffect(() => {
     loadUsers();
@@ -49,10 +56,40 @@ export default function AdminUsersScreen() {
             <Text style={adminStyles.badgeText}>Admins: {users.filter((user) => user.role === 'admin').length}</Text>
           </View>
         </View>
-        <TextInput value={search} onChangeText={setSearch} placeholder="Search by name or email" placeholderTextColor="#94a3b8" style={adminStyles.input} />
-        <TouchableOpacity style={adminStyles.button} onPress={loadUsers} activeOpacity={0.88}>
-          <Text style={adminStyles.buttonText}>Refresh users</Text>
-        </TouchableOpacity>
+        <TextInput value={search} onChangeText={setSearch} placeholder="Search name, email, faculty, phone" placeholderTextColor="#94a3b8" style={adminStyles.input} />
+        <View style={styles.filterGroup}>
+          {(['all', 'active', 'blocked'] as const).map((option) => (
+            <TouchableOpacity
+              key={option}
+              style={[styles.filterChip, statusFilter === option && styles.filterChipActive]}
+              onPress={() => setStatusFilter(option)}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.filterChipText, statusFilter === option && styles.filterChipTextActive]}>
+                {option === 'all' ? 'All status' : option === 'active' ? 'Active' : 'Blocked'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <View style={styles.filterGroup}>
+          {(['all', 'user', 'admin'] as const).map((option) => (
+            <TouchableOpacity
+              key={option}
+              style={[styles.filterChip, roleFilter === option && styles.filterChipActive]}
+              onPress={() => setRoleFilter(option)}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.filterChipText, roleFilter === option && styles.filterChipTextActive]}>
+                {option === 'all' ? 'All roles' : option === 'user' ? 'Users' : 'Admins'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <View style={styles.actionRow}>
+          <TouchableOpacity style={adminStyles.button} onPress={loadUsers} activeOpacity={0.88}>
+            <Text style={adminStyles.buttonText}>Search</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (
@@ -66,6 +103,8 @@ export default function AdminUsersScreen() {
               <View style={styles.identityWrap}>
                 <Text style={styles.userName}>{user.fullName}</Text>
                 <Text style={styles.userMeta}>{user.email}</Text>
+                <Text style={styles.userMeta}>Faculty: {user.faculty || 'Not set'} | Phone: {user.phoneNumber || 'Not set'}</Text>
+                <Text style={styles.userMeta}>Posts: {user.itemCount || 0}</Text>
               </View>
               <View style={styles.metaPillRow}>
                 <View style={[styles.metaPill, styles.rolePill]}>
@@ -78,8 +117,6 @@ export default function AdminUsersScreen() {
                 </View>
               </View>
             </View>
-            <Text style={styles.userMeta}>Faculty: {user.faculty || 'Not set'} | Phone: {user.phoneNumber || 'Not set'}</Text>
-            <Text style={styles.userMeta}>Posts: {user.itemCount || 0}</Text>
             <View style={styles.actionRow}>
               <TouchableOpacity style={adminStyles.secondaryButton} onPress={() => setEditingUser({ ...user })} activeOpacity={0.88}>
                 <Text style={adminStyles.secondaryButtonText}>Edit</Text>
@@ -205,6 +242,31 @@ const styles = StyleSheet.create({
     gap: 10,
     flexWrap: 'wrap',
     marginTop: 14,
+  },
+  filterGroup: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#eef4fb',
+    borderWidth: 1,
+    borderColor: '#dbe7f3',
+  },
+  filterChipActive: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+  filterChipText: {
+    color: '#2563eb',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  filterChipTextActive: {
+    color: '#ffffff',
   },
   modalBackdrop: {
     flex: 1,

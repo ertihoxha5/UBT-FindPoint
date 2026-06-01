@@ -1,8 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, Text, useColorScheme, Dimensions } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
-
-const { width } = Dimensions.get('window');
+import { View, StyleSheet, Text, useColorScheme } from 'react-native';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 interface StatisticsGraphsProps {
   totalUsers: number;
@@ -154,10 +152,29 @@ interface PieChartProps {
 }
 
 function PieChart({ cx, cy, r, data }: PieChartProps) {
+  const positiveSlices = data.filter((item) => item.value > 0);
+
+  if (positiveSlices.length === 1) {
+    return (
+      <Circle
+        cx={cx}
+        cy={cy}
+        r={r}
+        fill={positiveSlices[0].color}
+        stroke="white"
+        strokeWidth={2}
+      />
+    );
+  }
+
   let currentAngle = -Math.PI / 2;
   const slices = [];
 
   for (const item of data) {
+    if (item.value <= 0) {
+      continue;
+    }
+
     const sliceAngle = (item.value / 100) * 2 * Math.PI;
     const x1 = cx + r * Math.cos(currentAngle);
     const y1 = cy + r * Math.sin(currentAngle);

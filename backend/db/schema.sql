@@ -1,5 +1,5 @@
 -- Active: 1774977057822@@localhost@3306@findpoint_db
--- CREATE DATABASE IF NOT EXISTS findpoint_db;
+CREATE DATABASE IF NOT EXISTS findpoint_db;
 USE findpoint_db;
 
 CREATE TABLE users (

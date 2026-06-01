@@ -23,6 +23,7 @@ import type { Item } from '../../items/model/ItemModel';
 import { fetchItems, fetchDashboardStats, type DashboardStats } from '../../items/viewmodel/itemViewModel';
 import { formatRelativeItemDate, getAssetUrl } from '../../items/viewmodel/itemHelpers';
 import { useAuthViewModel } from '../../auth/viewmodel/AuthViewModel';
+import { useNotificationViewModel } from '../../notifications/viewmodel/NotificationViewModel';
 
 const { width } = Dimensions.get('window');
 const LOGO_SIZE = Math.min(width * 0.3, 120);
@@ -65,6 +66,7 @@ const getTitleLetter = (title: string) => {
 export default function HomeScreen() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuthViewModel();
+  const { unreadCount } = useNotificationViewModel();
   const [recentLost, setRecentLost] = useState<Item[]>([]);
   const [recentFound, setRecentFound] = useState<Item[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -300,10 +302,17 @@ export default function HomeScreen() {
                 
                 <TouchableOpacity 
                   style={styles.iconButton} 
-                  onPress={() => router.push('/profile')}
+                  onPress={() => router.push('/notifications')}
                   activeOpacity={0.7}
                 >
                   <Ionicons name="notifications-outline" size={22} color="#4a90e2" />
+                  {unreadCount > 0 && (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
               </View>
             </View>
@@ -585,6 +594,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: -2,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#ff3b30',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: '#ffffff',
+  },
+  badgeText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '800',
   },
   content: {
     paddingHorizontal: 20,

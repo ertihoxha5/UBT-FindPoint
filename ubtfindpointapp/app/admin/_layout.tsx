@@ -14,7 +14,7 @@ export default function AdminLayout() {
       .getCurrentUser()
       .then((user) => {
         if (active) {
-          setAllowed(user.role === 'admin');
+          setAllowed(Boolean(user && user.role === 'admin'));
         }
       })
       .catch(() => {
@@ -46,6 +46,7 @@ export default function AdminLayout() {
       <Stack.Screen name="users" />
       <Stack.Screen name="items" />
       <Stack.Screen name="reports" />
+      <Stack.Screen name="notifications" />
     </Stack>
   );
 }

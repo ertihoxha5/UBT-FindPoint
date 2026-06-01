@@ -174,7 +174,7 @@ export default function ProfileScreen() {
     try {
       await markMyItemFound(itemId);
       await handleLoad();
-      Alert.alert('Updated', 'The report has been marked as found.');
+      Alert.alert('Updated', 'The report was marked as found and updated immediately.');
     } catch {
       Alert.alert('Update failed', 'Please try again.');
     }

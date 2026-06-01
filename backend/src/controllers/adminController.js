@@ -46,6 +46,7 @@ export const getAdminUsers = async (req, res) => {
     const users = await listUsersForAdmin({
       search: String(req.query.search || "").trim(),
       status: String(req.query.status || "all"),
+      role: String(req.query.role || "all"),
     });
     res.json(users);
   } catch (error) {
@@ -127,6 +128,7 @@ export const getAdminItems = async (req, res) => {
       search: String(req.query.search || "").trim(),
       moderationStatus: String(req.query.moderationStatus || "all"),
       type: String(req.query.type || "all"),
+      status: String(req.query.status || "all"),
     });
     res.json(items);
   } catch (error) {

@@ -49,16 +49,30 @@ export default function NotificationScreen() {
         item.is_read ? styles.read : styles.unread,
       ]}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <IconSymbol
-          name="bell.fill"
-          size={20}
-          color={item.is_read ? '#9aa8bd' : '#4a90e2'}
-        />
-        <View style={{ marginLeft: 12, flex: 1 }}>
+      <View style={styles.itemTopRow}>
+        <View style={styles.iconWrap}>
+          <IconSymbol
+            name="bell.fill"
+            size={20}
+            color={item.is_read ? '#9aa8bd' : '#4a90e2'}
+          />
+          {!item.is_read && <View style={styles.unreadDot} />}
+        </View>
+
+        <View style={styles.itemBody}>
           <Text style={styles.title}>{item.title}</Text>
           <Text style={styles.message}>{item.message}</Text>
         </View>
+
+        {!item.is_read && (
+          <TouchableOpacity
+            onPress={() => markNotificationAsRead(item.notification_id)}
+            style={styles.markReadChip}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.markReadText}>Mark read</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <Text style={styles.time}>
@@ -148,10 +162,51 @@ const styles = StyleSheet.create({
   },
   unread: { borderLeftWidth: 3, borderLeftColor: '#4a90e2' },
   read: { opacity: 0.85 },
+  itemTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  iconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(74, 144, 226, 0.08)',
+    position: 'relative',
+    marginTop: 1,
+  },
+  unreadDot: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#ff3b30',
+    borderWidth: 1.5,
+    borderColor: '#ffffff',
+  },
+  itemBody: {
+    marginLeft: 12,
+    flex: 1,
+    paddingRight: 8,
+  },
 
   title: { fontWeight: '700', fontSize: 15, marginBottom: 2 },
   message: { color: '#6b7785', lineHeight: 18 },
   time: { color: '#9aa8bd', fontSize: 12, marginTop: 8, alignSelf: 'flex-end' },
+  markReadChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(74, 144, 226, 0.10)',
+  },
+  markReadText: {
+    color: '#4a90e2',
+    fontSize: 11,
+    fontWeight: '700',
+  },
 
   listContent: { padding: 16 },
   emptyText: {

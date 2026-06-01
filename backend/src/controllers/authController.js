@@ -5,6 +5,7 @@ import {
   getUserProfile,
   saveUserProfile,
   removeUserAccount,
+  updatePasswordByEmail,
 } from "../services/authService.js";
 import { requireUserId } from "../utils/auth.js";
 
@@ -78,5 +79,26 @@ export const deleteMe = async (req, res) => {
   } catch (err) {
     const statusCode = err.message === "Unauthorized" ? 401 : 400;
     res.status(statusCode).json({ error: err.message });
+  }
+};
+
+export const forgotPassword = async (req, res) => {
+  try {
+    const email = String(req.body.email || "").trim();
+    const newPassword = String(req.body.newPassword || "").trim();
+    const confirmPassword = String(req.body.confirmPassword || "").trim();
+
+    if (!email || !newPassword || !confirmPassword) {
+      return res.status(400).json({ error: "Email, newPassword, and confirmPassword are required" });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ error: "Passwords do not match" });
+    }
+
+    const result = await updatePasswordByEmail({ email, newPassword });
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 };

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, useColorScheme } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 interface AdminNavbarProps {
   activeRoute: string;
@@ -12,9 +13,11 @@ export function AdminNavbar({ activeRoute, onLogout }: AdminNavbarProps) {
   const isDark = useColorScheme() === 'dark';
 
   const navItems = [
-    { label: 'Dashboard', route: '/admin' },
-    { label: 'Users', route: '/admin/users' },
-    { label: 'Items', route: '/admin/items' },
+    { label: 'Dashboard', route: '/admin', icon: 'grid-outline' },
+    { label: 'Users', route: '/admin/users', icon: 'people-outline' },
+    { label: 'Items', route: '/admin/items', icon: 'cube-outline' },
+    { label: 'Reports', route: '/admin/reports', icon: 'flag-outline' },
+    { label: 'Notifications', route: '/admin/notifications', icon: 'notifications-outline' },
   ];
 
   return (
@@ -36,6 +39,11 @@ export function AdminNavbar({ activeRoute, onLogout }: AdminNavbarProps) {
                   onPress={() => router.replace(item.route as any)}
                   activeOpacity={0.7}
                 >
+                  <Ionicons
+                    name={item.icon as any}
+                    size={16}
+                    color={isActive ? (isDark ? '#ffffff' : '#0f5ee8') : isDark ? '#94a3b8' : '#64748b'}
+                  />
                   <Text
                     style={[
                       styles.navLinkText,
@@ -106,13 +114,17 @@ const styles = StyleSheet.create({
   },
   navLinks: {
     flexDirection: 'row',
-    gap: 4,
+    gap: 6,
+    flexWrap: 'wrap',
   },
   navLink: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingVertical: 8,
+    borderRadius: 999,
     marginHorizontal: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   navLinkActive: {
     backgroundColor: '#eff6ff',
@@ -121,7 +133,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(96, 165, 250, 0.1)',
   },
   navLinkText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: '#64748b',
     letterSpacing: 0.3,
@@ -138,7 +150,7 @@ const styles = StyleSheet.create({
   logoutButton: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 10,
+    borderRadius: 999,
     backgroundColor: '#fee2e2',
     borderWidth: 1,
     borderColor: '#fecaca',
