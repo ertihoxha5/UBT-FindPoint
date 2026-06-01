@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -7,15 +7,13 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
-  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import ClientHeader from '@/src/components/ClientHeader';
@@ -23,26 +21,11 @@ import { useProfileViewModel } from '../viewmodel/useProfileViewModel';
 import { formatItemDate, getAssetUrl } from '../../items/viewmodel/itemHelpers';
 import { deleteMyItem, markMyItemFound } from '../../items/viewmodel/itemViewModel';
 
-const { width } = Dimensions.get('window');
-
 export default function ProfileScreen() {
   const router = useRouter();
-  const { profile, posts, loading, saving, error, loadProfile, updateProfile, logout, deleteAccount } = useProfileViewModel();
+  const { profile, posts, loading, error, loadProfile, logout, deleteAccount } = useProfileViewModel();
   const [refreshing, setRefreshing] = useState(false);
-  const [fullName, setFullName] = useState('');
-  const [faculty, setFaculty] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [bio, setBio] = useState('');
-  const [selectedPhoto, setSelectedPhoto] = useState<{ uri: string; name: string; type: string } | null>(null);
-  const [editingProfile, setEditingProfile] = useState(false);
   const [showAllPosts, setShowAllPosts] = useState(false);
-
-  const hydrateForm = useCallback((user: any) => {
-    setFullName(user?.fullName || '');
-    setFaculty(user?.faculty || '');
-    setPhoneNumber(user?.phoneNumber || '');
-    setBio(user?.bio || '');
-  }, []);
 
   const handleLoad = useCallback(async (isRefresh = false) => {
     try {
@@ -50,75 +33,17 @@ export default function ProfileScreen() {
         setRefreshing(true);
       }
 
-      const result = await loadProfile();
-      hydrateForm(result.user);
+      await loadProfile();
     } finally {
       setRefreshing(false);
     }
-  }, [hydrateForm, loadProfile]);
+  }, [loadProfile]);
 
-  useEffect(() => {
-    handleLoad();
-  }, [handleLoad]);
-
-  const pickPhoto = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (permission.status !== 'granted') {
-      Alert.alert('Permission denied', 'Photo access is needed to set a profile picture.');
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
-
-    if (result.canceled || !result.assets.length) {
-      return;
-    }
-
-    const asset = result.assets[0];
-    setSelectedPhoto({
-      uri: asset.uri,
-      name: asset.fileName || `profile-${Date.now()}.jpg`,
-      type: asset.mimeType || 'image/jpeg',
-    });
-  };
-
-  const onSave = async () => {
-    if (!fullName.trim()) {
-      Alert.alert('Missing name', 'Please enter your full name.');
-      return;
-    }
-
-    try {
-      const formData = new FormData();
-      formData.append('fullName', fullName.trim());
-      formData.append('faculty', faculty.trim());
-      formData.append('phoneNumber', phoneNumber.trim());
-      formData.append('bio', bio.trim());
-
-      if (selectedPhoto) {
-        formData.append('profilePhoto', selectedPhoto as any);
-      }
-
-      const updated = await updateProfile(formData);
-      hydrateForm(updated);
-      setSelectedPhoto(null);
-      setEditingProfile(false);
-      Alert.alert('Profile updated', 'Your profile details were saved.');
-    } catch {
-      Alert.alert('Update failed', 'Please try again.');
-    }
-  };
-
-  const onCancelEditProfile = () => {
-    hydrateForm(profile);
-    setSelectedPhoto(null);
-    setEditingProfile(false);
-  };
+  useFocusEffect(
+    useCallback(() => {
+      void handleLoad();
+    }, [handleLoad])
+  );
 
   const onLogout = async () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -204,9 +129,7 @@ export default function ProfileScreen() {
     [profile]
   );
 
-  const avatarSource = selectedPhoto?.uri
-    ? { uri: selectedPhoto.uri }
-    : profile?.profilePictureUrl
+  const avatarSource = profile?.profilePictureUrl
       ? { uri: getAssetUrl(profile.profilePictureUrl) }
       : null;
 
@@ -356,8 +279,7 @@ export default function ProfileScreen() {
             >
               <TouchableOpacity 
                 style={styles.avatarWrap} 
-                onPress={editingProfile ? pickPhoto : undefined} 
-                activeOpacity={editingProfile ? 0.88 : 1}
+                activeOpacity={1}
               >
                 {avatarSource ? (
                   <Image source={avatarSource} style={styles.avatar} />
@@ -371,21 +293,14 @@ export default function ProfileScreen() {
                     </Text>
                   </LinearGradient>
                 )}
-                {editingProfile && (
-                  <View style={styles.editAvatarBadge}>
-                    <Ionicons name="camera" size={16} color="#ffffff" />
-                  </View>
-                )}
               </TouchableOpacity>
 
               <View style={styles.roleBadge}>
                 <Text style={styles.role}>{profile?.role || 'user'}</Text>
               </View>
               <Text style={styles.name}>{profile?.fullName || 'User'}</Text>
-              {bio ? <Text style={styles.bio}>{bio}</Text> : null}
-              <Text style={styles.helperText}>
-                {editingProfile ? 'Tap the image to update your profile photo.' : 'Your profile details and reports live here.'}
-              </Text>
+              {profile?.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
+              <Text style={styles.helperText}>Your profile details and reports live here.</Text>
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
             </LinearGradient>
 
@@ -416,84 +331,13 @@ export default function ProfileScreen() {
                   <Text style={styles.tableValue}>{row.value}</Text>
                 </View>
               ))}
-              
-              {!editingProfile ? (
-                <TouchableOpacity style={styles.primaryButton} onPress={() => setEditingProfile(true)} activeOpacity={0.88}>
-                  <LinearGradient colors={['#4a90e2', '#357abd']} style={styles.buttonGradient}>
-                    <Ionicons name="create-outline" size={20} color="#ffffff" />
-                    <Text style={styles.primaryButtonText}>Edit Profile</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              ) : (
-                <View style={styles.editProfileWrap}>
-                  <Text style={styles.editTitle}>Edit Profile</Text>
-                  
-                  <View style={styles.inputWrapper}>
-                    <Ionicons name="person-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
-                    <TextInput 
-                      value={fullName} 
-                      onChangeText={setFullName} 
-                      placeholder="Full name" 
-                      placeholderTextColor="#94a3b8" 
-                      style={styles.input} 
-                    />
-                  </View>
-                  
-                  <View style={styles.inputWrapper}>
-                    <Ionicons name="school-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
-                    <TextInput 
-                      value={faculty} 
-                      onChangeText={setFaculty} 
-                      placeholder="Faculty" 
-                      placeholderTextColor="#94a3b8" 
-                      style={styles.input} 
-                    />
-                  </View>
-                  
-                  <View style={styles.inputWrapper}>
-                    <Ionicons name="call-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
-                    <TextInput 
-                      value={phoneNumber} 
-                      onChangeText={setPhoneNumber} 
-                      placeholder="Phone number" 
-                      placeholderTextColor="#94a3b8" 
-                      keyboardType="phone-pad"
-                      style={styles.input} 
-                    />
-                  </View>
-                  
-                  <View style={[styles.inputWrapper, styles.textAreaWrapper]}>
-                    <Ionicons name="chatbubble-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
-                    <TextInput
-                      value={bio}
-                      onChangeText={setBio}
-                      placeholder="Short bio"
-                      placeholderTextColor="#94a3b8"
-                      style={[styles.input, styles.textArea]}
-                      multiline
-                    />
-                  </View>
-                  
-                  <View style={styles.editButtons}>
-                    <TouchableOpacity style={[styles.saveButton, saving && styles.buttonDisabled]} onPress={onSave} activeOpacity={0.88} disabled={saving}>
-                      <LinearGradient colors={['#51cf66', '#40c057']} style={styles.saveGradient}>
-                        {saving ? (
-                          <ActivityIndicator color="#ffffff" size="small" />
-                        ) : (
-                          <>
-                            <Ionicons name="save-outline" size={20} color="#ffffff" />
-                            <Text style={styles.saveButtonText}>Save Changes</Text>
-                          </>
-                        )}
-                      </LinearGradient>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity style={styles.cancelButton} onPress={onCancelEditProfile} activeOpacity={0.88}>
-                      <Text style={styles.cancelButtonText}>Cancel</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
+
+              <TouchableOpacity style={styles.primaryButton} onPress={() => router.push('/profile/edit')} activeOpacity={0.88}>
+                <LinearGradient colors={['#4a90e2', '#357abd']} style={styles.buttonGradient}>
+                  <Ionicons name="create-outline" size={20} color="#ffffff" />
+                  <Text style={styles.primaryButtonText}>Edit Profile</Text>
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
 
             {/* My Posts Section Header */}
@@ -539,7 +383,7 @@ export default function ProfileScreen() {
             <View style={styles.emptyContainer}>
               <Ionicons name="document-text-outline" size={64} color="#cbd5e1" />
               <Text style={styles.emptyTitle}>No posts yet</Text>
-              <Text style={styles.emptyText}>You haven't posted any lost or found items yet.</Text>
+              <Text style={styles.emptyText}>You haven&apos;t posted any lost or found items yet.</Text>
             </View>
           ) : null
         }
