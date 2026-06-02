@@ -28,16 +28,23 @@ export const loginUser = async (email, password) => {
   const isMatch = await bcrypt.compare(password, user.passwordHash);
   if (!isMatch) throw new Error("Invalid password");
 
-  const token = jwt.sign(
+  const accessToken = jwt.sign(
     { userId: user.userId },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
+  );
+  const refreshToken = jwt.sign(
+    { userId: user.userId, type: "refresh" },
+    process.env.JWT_SECRET,
+    { expiresIn: "30d" }
   );
 
   await updateUserLastLogin(user.userId);
 
   return {
-    token,
+    token: accessToken,
+    accessToken,
+    refreshToken,
     user: await getUserProfile(user.userId),
   };
 };

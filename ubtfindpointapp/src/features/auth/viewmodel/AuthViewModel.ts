@@ -13,6 +13,8 @@ interface User {
 
 interface LoginResponse {
   token: string;
+  accessToken?: string;
+  refreshToken?: string;
   user: User;
 }
 
@@ -25,7 +27,7 @@ export const useAuthViewModel = () => {
       const res = await api.get("/auth/me");
       setUser(res.data);
       return res.data;
-    } catch (error) {
+    } catch {
       setUser(null);
       return null;
     }
@@ -45,8 +47,13 @@ export const useAuthViewModel = () => {
   const login = useCallback(async (email: string, password: string): Promise<LoginResponse> => {
     const res = await api.post("/auth/login", { email, password });
 
-    const token = res.data.token;
+    const token = res.data.accessToken || res.data.token;
+    const refreshToken = res.data.refreshToken;
     const userData = res.data.user;
+
+    console.log("Access Token:", token);
+    console.log("Refresh Token:", refreshToken);
+
     await storeToken(token);
     setUser(userData);
 
