@@ -21,8 +21,10 @@ export default function Index() {
 
         try {
           const user = await auth.getCurrentUser();
-          if (active) {
+          if (active && user) {
             setTarget(user.role === 'admin' ? '/admin' : '/home');
+          } else if (active) {
+            setTarget('/login');
           }
         } catch {
           if (active) {

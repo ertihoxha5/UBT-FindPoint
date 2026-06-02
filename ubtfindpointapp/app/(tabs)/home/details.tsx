@@ -7,7 +7,7 @@ import { deleteMyItem, markMyItemFound } from '@/src/features/items/viewmodel/it
 
 export default function HomeDetailsScreen() {
   const router = useRouter();
-  const auth = useAuthViewModel();
+  const { getCurrentUser } = useAuthViewModel();
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [startingChat, setStartingChat] = useState(false);
   const params = useLocalSearchParams<{
@@ -33,11 +33,10 @@ export default function HomeDetailsScreen() {
   useEffect(() => {
     let active = true;
 
-    auth
-      .getCurrentUser()
+    getCurrentUser()
       .then((user) => {
         if (active) {
-          setCurrentUserId(user.userId);
+          setCurrentUserId(user?.userId || user?.id || null);
         }
       })
       .catch(() => {
@@ -49,7 +48,7 @@ export default function HomeDetailsScreen() {
     return () => {
       active = false;
     };
-  }, [auth]);
+  }, [getCurrentUser]);
 
   const ownerUserId = params.userId ? Number(params.userId) : null;
   const isOwner = useMemo(() => {

@@ -20,7 +20,7 @@ import { useAuthViewModel } from '../../auth/viewmodel/AuthViewModel';
 import { useChatViewModel } from '../viewmodel/useChatViewModel';
 
 export default function ChatView({ conversationId }: { conversationId: number }) {
-  const auth = useAuthViewModel();
+  const { getCurrentUser } = useAuthViewModel();
   const [userId, setUserId] = useState<number | null>(null);
   const [authResolved, setAuthResolved] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -32,8 +32,7 @@ export default function ChatView({ conversationId }: { conversationId: number })
   useEffect(() => {
     let active = true;
 
-    auth
-      .getCurrentUser()
+    getCurrentUser()
       .then((user) => {
         if (active) {
           setUserId(user?.userId || user?.id || null);
@@ -65,7 +64,7 @@ export default function ChatView({ conversationId }: { conversationId: number })
       keyboardDidShowListener.remove();
       keyboardDidHideListener.remove();
     };
-  }, [auth]);
+  }, [fadeAnim, getCurrentUser]);
 
   useEffect(() => {
     if (messages.length > 0) {
